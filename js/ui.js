@@ -53,13 +53,7 @@ export function initUI(state){
     state.zones.length = 0;
     toast("Zonele au fost șterse.");
   });
-    const f = e.target.files[0]; if (!f) return;
-    const url = URL.createObjectURL(f);
-    const img = new Image();
-    img.onload = ()=>{ state.floorImage = img; toast("Imagine încărcată."); };
-    img.src = url;
-  });
-  $("#btn-save-config").addEventListener("click", ()=>{
+$("#btn-save-config").addEventListener("click", ()=>{
     const cfg = {
       extinguishers: state.extinguishers,
       zones: state.zones,
