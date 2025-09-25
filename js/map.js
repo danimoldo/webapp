@@ -3,11 +3,11 @@ export async function initMap(state){
   const canvas = document.getElementById("map-canvas");
   const ctx = canvas.getContext("2d");
 
-  // expose for other modules (zones guide, etc.)
+  // expose for other modules
   state.canvas = canvas;
   state._mapCtx = ctx;
 
-  // offscreen layer for static floor + zones (define BEFORE resize uses it)
+  // offscreen layer for floor + zones
   const layer = document.createElement("canvas");
   const lctx = layer.getContext("2d");
   function resizeLayer(){
@@ -15,7 +15,7 @@ export async function initMap(state){
     layer.height = canvas.height;
   }
 
-  // handle resize (now safe to call resizeLayer)
+  // resize
   function resize(){
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
@@ -26,7 +26,7 @@ export async function initMap(state){
   new ResizeObserver(resize).observe(canvas);
   resize();
 
-  // load floor image
+  // floor
   const img = new Image();
   img.src = "./img/floor.png";
   await new Promise(res => { img.onload = res; img.onerror = res; });
@@ -34,11 +34,10 @@ export async function initMap(state){
   state.layerDirty = true;
 
   function draw(){
-    // draw static layer if dirty
+    // redraw static layer if needed
     if (state.layerDirty){
       lctx.setTransform(1,0,0,1,0,0);
       lctx.clearRect(0,0,layer.width,layer.height);
-      // floor
       if (state.floorImage){
         const scale = Math.min(layer.width / state.floorImage.width, layer.height / state.floorImage.height);
         const w = state.floorImage.width * scale;
@@ -49,12 +48,15 @@ export async function initMap(state){
         lctx.fillRect(0,0,layer.width,layer.height);
       }
       // zones
-      for (let zi = 0; zi < state.zones.length; zi++){
+      for (let zi=0; zi<state.zones.length; zi++){
         const poly = state.zones[zi];
         lctx.fillStyle = "rgba(255,90,115,0.15)";
         lctx.strokeStyle = zi===state.selectedZone ? "rgba(255,200,0,0.9)" : "rgba(255,90,115,0.6)";
         lctx.beginPath();
-        poly.forEach((p,i)=> i?lctx.lineTo(p.x,p.y):lctx.moveTo(p.x,p.y));
+        for (let i=0; i<poly.length; i++){
+          const p = poly[i];
+          if (i===0) lctx.moveTo(p.x, p.y); else lctx.lineTo(p.x, p.y);
+        }
         lctx.closePath();
         lctx.fill();
         lctx.stroke();
@@ -72,8 +74,6 @@ export async function initMap(state){
     // main draw
     ctx.setTransform(1,0,0,1,0,0);
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.save();
-    
     ctx.drawImage(layer, 0, 0);
 
     // extinguishers
@@ -106,16 +106,13 @@ export async function initMap(state){
         ctx.stroke();
       }
     }
-    ctx.restore();
   }
 
-  // expose draw for other modules
   window.drawMap = draw;
   state.draw = draw;
 
-  // hover handling
+  // hover highlight over assets
   canvas.addEventListener("mousemove", (e)=>{
-    if (draggingExt>=0){ const p = toLogical(e); const ex = state.extinguishers[draggingExt]; ex.x = p.x; ex.y = p.y; state.layerDirty = true; draw(); return; }
     const p = toLogical(e);
     let prev = state.hoveredId;
     state.hoveredId = null;
@@ -141,7 +138,6 @@ export async function initMap(state){
   // click: select hovered asset or zone
   canvas.addEventListener("click", (e)=>{
     const p = toLogical(e);
-    // asset selection
     if (state.hoveredId){
       state.selectedId = state.hoveredId;
       if (typeof window.renderList === "function"){ window.renderList(state); }
@@ -153,18 +149,19 @@ export async function initMap(state){
     for (let zi=0; zi<state.zones.length; zi++){
       if (pointInPoly(state.zones[zi], p)){ found = zi; break; }
     }
-    state.selectedZone = (found>=0)? found : null;
+    state.selectedZone = (found>=0) ? found : null;
     state.layerDirty = true;
     draw();
   });
 
-  // zoom
-  // zone vertex dragging
+  // drag vertices and extinguishers
   let draggingVertex = null; // {zoneIndex, vertexIndex}
-  let draggingExt = -1; // index in extinguishers
+  let draggingExt = -1; // index of extinguisher
+
   canvas.addEventListener("mousedown", (e)=>{
     draggingExt = -1;
     const p = toLogical(e);
+    // vertices
     for (let zi=0; zi<state.zones.length; zi++){
       const poly = state.zones[zi];
       for (let vi=0; vi<poly.length; vi++){
@@ -177,17 +174,25 @@ export async function initMap(state){
         }
       }
     }
-    // try extinguisher drag
+    // extinguishers
     for (let i=0; i<state.extinguishers.length; i++){
       const ex = state.extinguishers[i];
-      if (Math.hypot(ex.x - p.x, ex.y - p.y) < 10){ draggingExt = i; return; }
-    }
-        }
+      if (Math.hypot(ex.x - p.x, ex.y - p.y) < 10){
+        draggingExt = i;
+        return;
       }
     }
   });
+
   canvas.addEventListener("mousemove", (e)=>{
-    if (draggingExt>=0){ const p = toLogical(e); const ex = state.extinguishers[draggingExt]; ex.x = p.x; ex.y = p.y; state.layerDirty = true; draw(); return; }
+    if (draggingExt >= 0){
+      const p = toLogical(e);
+      const ex = state.extinguishers[draggingExt];
+      ex.x = p.x; ex.y = p.y;
+      state.layerDirty = true;
+      draw();
+      return;
+    }
     if (!draggingVertex) return;
     const p = toLogical(e);
     const poly = state.zones[draggingVertex.zoneIndex];
@@ -195,7 +200,11 @@ export async function initMap(state){
     state.layerDirty = true;
     draw();
   });
-  canvas.addEventListener("mouseup", ()=>{ draggingVertex = null; draggingExt = -1; });
+
+  canvas.addEventListener("mouseup", ()=>{
+    draggingVertex = null;
+    draggingExt = -1;
+  });
 
   document.addEventListener("keydown", (e)=>{
     if (e.key === "Delete" && state.selectedZone != null){
@@ -217,10 +226,10 @@ export async function initMap(state){
   // helpers
   function toLogical(e){
     const r = canvas.getBoundingClientRect();
-    return { x: (e.clientX - r.left) / z, y: (e.clientY - r.top) / z };
+    return { x: (e.clientX - r.left), y: (e.clientY - r.top) };
   }
   function pointInPoly(poly, pt){
-    let inside=false;
+    let inside = false;
     for (let i=0, j=poly.length-1; i<poly.length; j=i++){
       const xi=poly[i].x, yi=poly[i].y, xj=poly[j].x, yj=poly[j].y;
       const intersect = ((yi>pt.y)!=(yj>pt.y)) && (pt.x < (xj - xi) * (pt.y - yi) / ((yj - yi) || 1e-6) + xi);
