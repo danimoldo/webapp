@@ -70,11 +70,10 @@ export async function initMap(state){
     }
 
     // main draw
-    const z = state.zoom || 1;
     ctx.setTransform(1,0,0,1,0,0);
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.save();
-    ctx.scale(z, z);
+    
     ctx.drawImage(layer, 0, 0);
 
     // extinguishers
@@ -159,15 +158,6 @@ export async function initMap(state){
   });
 
   // zoom
-  canvas.addEventListener("wheel", (e)=>{
-    e.preventDefault();
-    const z0 = state.zoom || 1;
-    const dz = e.deltaY < 0 ? 0.1 : -0.1;
-    state.zoom = Math.max(0.5, Math.min(2, z0 + dz));
-    try { localStorage.setItem("zoom", String(state.zoom)); } catch(e){}
-    draw();
-  }, { passive:false });
-
   // zone vertex dragging
   let draggingVertex = null; // {zoneIndex, vertexIndex}
   canvas.addEventListener("mousedown", (e)=>{
@@ -215,7 +205,6 @@ export async function initMap(state){
   // helpers
   function toLogical(e){
     const r = canvas.getBoundingClientRect();
-    const z = state.zoom || 1;
     return { x: (e.clientX - r.left) / z, y: (e.clientY - r.top) / z };
   }
   function pointInPoly(poly, pt){

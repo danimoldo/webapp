@@ -21,6 +21,13 @@ export function initUI(state){
     try { if (sessionStorage.getItem("leftCollapsed")==="1") document.body.classList.add("left-collapsed"); } catch(e){}
   }
 
+  // Sidebar toggle (floating)
+  const floatToggle = document.getElementById('sidebar-toggle');
+  if (floatToggle){ floatToggle.addEventListener('click', ()=>{
+    document.body.classList.toggle('left-collapsed');
+    try { localStorage.setItem('leftCollapsed', document.body.classList.contains('left-collapsed') ? '1':'0'); } catch(e){}
+  }); }
+
   // Sidebar collapse from left panel header
   const collapseBtn = document.getElementById("btn-left-collapse");
   if (collapseBtn){ collapseBtn.addEventListener("click", ()=>{
