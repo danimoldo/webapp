@@ -228,7 +228,12 @@ export async function initMap(state){
   canvas.addEventListener('click', (e)=>{
     const p = toLogical(e);
     // select asset on hover
-    if (state.hoveredId){ state.selectedId = state.hoveredId; if (typeof window.renderList === 'function') window.renderList(state); draw(); return; }
+    if (state.hoveredId){
+      state.selectedId = state.hoveredId;
+      if (typeof window.renderList === 'function') window.renderList(state);
+      draw();
+      return;
+    }
     // zone hit-test
     function pointInPoly(poly, pt){
       let inside=false;
@@ -246,9 +251,6 @@ export async function initMap(state){
     state.selectedZone = (found>=0)? found : null;
     state.layerDirty = true;
     draw();
-  });
-
-    if (state.hoveredId){ state.selectedId = state.hoveredId; if (typeof window.renderDetails === 'function') window.renderDetails(state); if (typeof window.renderList === 'function') window.renderList(state); draw(); }
   });
 
   return { draw, canvas, ctx };
