@@ -194,21 +194,21 @@ export function renderList(state){
     const subtitle = a.type==="extinguisher" ? (a.expired?"Expirat":"Funcțional") : (a.status==="idle"?"Inactiv >5m":"În mișcare");
     const title = (a.type==="forklift"?"Stivuitor": a.type==="lifter"?"Lifter":"Extinctor") + " " + a.id;
     const sel = (state.selectedId===a.id) ? " selected" : "";
-    return \`<div class="list-item\${sel}" data-id="\${a.id}">
-      <div><span class="status-dot \${statusDot}"></span> \${title}</div>
-      <div class="meta">\${a.checked? ("Verificat " + a.checked + " • Aprobat " + a.approved) : ""} \${a.type==="extinguisher"?"":""}</div>
-      <div class="meta">\${subtitle}</div>
+    return \`<div class="list-item${sel}" data-id="${a.id}">
+      <div><span class="status-dot ${statusDot}"></span> ${title}</div>
+      <div class="meta">${a.checked? ("Verificat " + a.checked + " • Aprobat " + a.approved) : ""} ${a.type==="extinguisher"?"":""}</div>
+      <div class="meta">${subtitle}</div>
       <div class="actions">
-        <button class="action" data-action="edit" data-id="\${a.id}">Editează</button>
-        <button class="action" data-action="move" data-id="\${a.id}">Mută</button>
-        <button class="action" data-action="delete" data-id="\${a.id}">Șterge</button>
+        <button class="action" data-action="edit" data-id="${a.id}">Editează</button>
+        <button class="action" data-action="move" data-id="${a.id}">Mută</button>
+        <button class="action" data-action="delete" data-id="${a.id}">Șterge</button>
       </div>
     </div>\`;
   }).join("");
 
   // Scroll to selected if visible
   if (state.selectedId){
-    const el = list.querySelector(\`.list-item[data-id="\${state.selectedId}"]\`);
+    const el = list.querySelector(\`.list-item[data-id="${state.selectedId}"]\`);
     if (el) { el.classList.add("selected"); el.scrollIntoView({block:"nearest"}); }
   }
 }
