@@ -1,6 +1,14 @@
 // js/ui.js
 import { toast, downloadJSON } from "./utils.js";
 export function initUI(state){
+  // Restore persisted left panel & filters & zoom
+  try {
+    const lf = localStorage.getItem("leftCollapsed"); if (lf==="1") document.body.classList.add("left-collapsed");
+    const filters = JSON.parse(localStorage.getItem("filters")||"[]"); 
+    if (filters && filters.length){ state.filters = new Set(filters); }
+    const z = parseFloat(localStorage.getItem("zoom")||"1"); if (!isNaN(z)) state.zoom = Math.max(0.5, Math.min(2, z));
+  } catch(e) {}
+
 
   // Floating left sidebar toggle icon
   const toggleIcon = document.getElementById("left-toggle");
@@ -8,7 +16,7 @@ export function initUI(state){
     toggleIcon.addEventListener("click", ()=>{
       document.body.classList.toggle("left-collapsed");
       // Persist preference in session
-      try { sessionStorage.setItem("leftCollapsed", document.body.classList.contains("left-collapsed") ? "1" : "0"); } catch(e){}
+      try { localStorage.setItem("leftCollapsed", document.body.classList.contains("left-collapsed") ? "1" : "0"); } catch(e){}
     });
     try { if (sessionStorage.getItem("leftCollapsed")==="1") document.body.classList.add("left-collapsed"); } catch(e){}
   }
@@ -65,11 +73,27 @@ $("#btn-save-config").addEventListener("click", ()=>{
   document.getElementById("left-panel").addEventListener("click", (e)=>{
     const b = e.target.closest("[data-filter]"); if (!b) return;
     const f = b.dataset.filter;
-    state.filters = new Set([f]);
-    renderList(state);
+    if (f === "all"){ state.filters = new Set(["all"]); }
+else {
+  if (state.filters.has("all")) state.filters.delete("all");
+  if (state.filters.has(f)) state.filters.delete(f); else state.filters.add(f);
+  if (state.filters.size === 0) state.filters.add("all");
+}
+// persist
+try { localStorage.setItem("filters", JSON.stringify([...state.filters])); } catch(e){}
+renderList(state);
+if (typeof window.drawMap === 'function') window.drawMap();
   });
 
   // Select from list
+  document.getElementById("asset-list").addEventListener("mouseover", (e)=>{
+    const item = e.target.closest(".list-item"); if (!item) return;
+    state.hoveredId = item.dataset.id;
+    if (typeof window.drawMap === 'function') window.drawMap();
+  });
+  document.getElementById("asset-list").addEventListener("mouseleave", ()=>{
+    state.hoveredId = null; if (typeof window.drawMap === 'function') window.drawMap();
+  });
   document.getElementById("asset-list").addEventListener("click", (e)=>{
     const item = e.target.closest(".list-item"); if (!item) return;
     state.selectedId = item.dataset.id;
@@ -128,32 +152,59 @@ $("#btn-save-config").addEventListener("click", ()=>{
 export function renderList(state){
   window.renderList = renderList;
   const list = document.getElementById("asset-list");
-  const filter = [...state.filters][0];
-  const items = state.assets.filter(a=>{
-    if (filter==="all") return true;
-    if (filter==="forklifts") return a.type==="forklift";
-    if (filter==="lifters") return a.type==="lifter";
-    if (filter==="moving") return a.status==="moving";
-    if (filter==="idle") return a.status==="idle";
+  const filterSet = state.filters;
+  // Update chip visual state
+  const chips = document.querySelectorAll("#left-panel [data-filter]");
+  chips.forEach(c=>{
+    const f = c.getAttribute("data-filter");
+    if (filterSet.has("all") && f==="all"){ c.classList.add("active"); }
+    else if (!filterSet.has("all") && filterSet.has(f)){ c.classList.add("active"); }
+    else { c.classList.remove("active"); }
+  });
+
+  // Build filtered list
+  function matchFilters(a){
+    if (filterSet.has("all")) return true;
+    // type
+    if (filterSet.has("forklifts") && a.type!=="forklift") return false;
+    if (filterSet.has("lifters") && a.type!=="lifter") return false;
+    if (filterSet.has("extinguishers") && a.type!=="extinguisher") return false;
+    // status
+    if (filterSet.has("moving") && a.status!=="moving") return false;
+    if (filterSet.has("idle") && a.status!=="idle") return false;
+    // special expired for extinguishers
+    if (filterSet.has("expired") && !(a.type==="extinguisher" && a.expired)) return false;
     return true;
-  });
-  list.innerHTML = items.map(a => `
-    <div class="list-item ${a.id===state.selectedId?'active':''} ${a.id===state.hoveredId?'hovered':''}" data-id="${a.id}">
-      <div><strong>${a.type==="forklift"?"Stivuitor":"Lifter"} ${a.id}</strong></div>
-      <div class="meta">Verificat ${a.checked} • Aprobat ${a.approved}</div>
-      <div class="meta">${a.status==="idle"?"Inactiv >5m":"În mișcare"}</div>
-    </div>
-  `).join("");
-  list.querySelectorAll('.list-item').forEach(el=>{
-    el.addEventListener('click',()=>{
-      state.selectedId = el.getAttribute('data-id');
-      /* details panel removed */
-      renderList(state);
-      const s = document.querySelector('.list-item.active'); if (s) s.scrollIntoView({block:'nearest', behavior:'smooth'});
-    });
-  });
+  }
+  const items = [
+    ...state.assets.map(a=>({ ...a })),
+    ...state.extinguishers.map(e=>({ ...e, type:"extinguisher", status: e.expired? "expired":"ok" }))
+  ].filter(matchFilters);
+
+  list.innerHTML = items.map(a=>{
+    const statusDot = a.type==="extinguisher" ? (a.expired? "status-idle" : "status-moving") : (a.status==="idle"?"status-idle":"status-moving");
+    const subtitle = a.type==="extinguisher" ? (a.expired?"Expirat":"Funcțional") : (a.status==="idle"?"Inactiv >5m":"În mișcare");
+    const title = (a.type==="forklift"?"Stivuitor": a.type==="lifter"?"Lifter":"Extinctor") + " " + a.id;
+    const sel = (state.selectedId===a.id) ? " selected" : "";
+    return \`<div class="list-item\${sel}" data-id="\${a.id}">
+      <div><span class="status-dot \${statusDot}"></span> \${title}</div>
+      <div class="meta">\${a.checked? ("Verificat " + a.checked + " • Aprobat " + a.approved) : ""} \${a.type==="extinguisher"?"":""}</div>
+      <div class="meta">\${subtitle}</div>
+      <div class="actions">
+        <button class="action" data-action="edit" data-id="\${a.id}">Editează</button>
+        <button class="action" data-action="move" data-id="\${a.id}">Mută</button>
+        <button class="action" data-action="delete" data-id="\${a.id}">Șterge</button>
+      </div>
+    </div>\`;
+  }).join("");
+
+  // Scroll to selected if visible
+  if (state.selectedId){
+    const el = list.querySelector(\`.list-item[data-id="\${state.selectedId}"]\`);
+    if (el) { el.classList.add("selected"); el.scrollIntoView({block:"nearest"}); }
+  }
 }
-export function renderDetails(state){
+export function renderDetails(state){ /* removed */ }(state){
   window.renderDetails = renderDetails;
   const box = document.getElementById("details");
   const a = state.assets.find(x=>x.id===state.selectedId);

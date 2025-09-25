@@ -93,3 +93,28 @@ body.left-collapsed .sidebar-toggle { left: 16px; }
 .modal-dialog label { display:block; font-size:13px; margin: 10px 0; }
 .modal-dialog input, .modal-dialog select { width: 100%; padding:8px; background:#0b1016; border:1px solid #223045; color:#e7ecf3; border-radius:8px; }
 .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top: 12px; }
+
+
+/* Chips multi-select active state */
+.chip.active { background: #1e2a3f; border-color: #3a7bff55; color: #cfe1ff; }
+
+/* List item action buttons */
+.list-item .actions { margin-top: 6px; display:flex; gap:8px; flex-wrap:wrap; }
+.list-item .action { font-size: 12px; padding: 6px 10px; border-radius: 8px; border:1px solid #2a3b57; background:#0d1320; cursor:pointer; }
+.list-item .action:hover { background:#121a2b; }
+
+/* Mobile adjustments */
+@media (max-width: 900px){
+  .toolbar .btn { padding: 10px 14px; font-size: 14px; }
+  .sidebar-toggle { width: 44px; height: 44px; top: 12px; left: 12px; }
+  #left-panel { width: 280px; }
+  .panel { padding: 12px; }
+  .list-item { padding: 10px; }
+  .list-item .action { font-size: 14px; padding: 8px 12px; }
+}
+
+/* Sidebar overlay mode on small screens */
+@media (max-width: 700px){
+  #left-panel { position: absolute; z-index: 45; height: 100%; background: #0b1016; box-shadow: 0 20px 50px rgba(0,0,0,0.45); }
+  body.left-collapsed #left-panel { display:none; }
+}
