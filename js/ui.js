@@ -1,4 +1,5 @@
 // js/ui.js
+const $ = (s) => document.querySelector(s);
 import { toast, downloadJSON } from "./utils.js";
 // Hide/Show left panel
 document.addEventListener("click", (e)=>{
@@ -10,7 +11,6 @@ document.addEventListener("click", (e)=>{
 });
 export function initUI(state){
   // Add new assets
-const $ = (s)=>document.querySelector(s);
 function addAsset(type){
   const w = state.canvas.width, h = state.canvas.height;
   const idPrefix = type==="forklift" ? "F" : (type==="lifter" ? "L" : "E");
@@ -34,7 +34,6 @@ $("#left-panel").addEventListener("click", (e)=>{
   if (e.target.id === "add-lifter") addAsset("lifter");
   if (e.target.id === "add-ext") addAsset("ext");
 });
-  const $ = (s)=>document.querySelector(s);
   $("#btn-pause").addEventListener("click", ()=>{
     state.paused = !state.paused;
     $("#btn-pause").textContent = state.paused ? "Pornește" : "Pauză";
