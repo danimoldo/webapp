@@ -1,3 +1,23 @@
+
+// --- Device seeder fallback ---
+if (!window.__devices){
+  window.__devices = [];
+  try {
+    const machines = window.__machinesData || null;
+    if (machines){
+      for (let f of (machines.forklifts||[])){
+        window.__devices.push({id:f.id,type:'forklift',x:50+Math.random()*400,y:50+Math.random()*300,meta:f});
+      }
+      for (let l of (machines.lifters||[])){
+        window.__devices.push({id:l.id,type:'lifter',x:50+Math.random()*400,y:50+Math.random()*300,meta:l});
+      }
+    } else {
+      for (let i=0;i<5;i++){window.__devices.push({id:'F-'+String(i+1).padStart(3,'0'),type:'forklift',x:50+Math.random()*400,y:50+Math.random()*300})}
+      for (let i=0;i<5;i++){window.__devices.push({id:'L-'+String(i+1).padStart(3,'0'),type:'lifter',x:50+Math.random()*400,y:50+Math.random()*300})}
+    }
+  } catch(e){}
+}
+
 // js/sim.js
 import { rand } from "./utils.js";
 const SPEED_MPS = 1.39; // ~5 km/h

@@ -39,3 +39,41 @@ async function boot(){
   startSim(state);
 }
 boot();
+
+
+// --- Movement driver fallback (added by assistant) ---
+(function(){
+  if (window.__movementDriverAdded) return;
+  window.__movementDriverAdded = true;
+  const SPEED = 0.5; // pixels per frame
+  function step(){
+    const devices = window.__devices || [];
+    let moved = false;
+    for (let d of devices){
+      if (!d._target) {
+        const canvas = document.getElementById('map-canvas');
+        if (!canvas) continue;
+        d._target = { x: Math.random()*canvas.width, y: Math.random()*canvas.height };
+      }
+      const dx = d._target.x - d.x;
+      const dy = d._target.y - d.y;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+      if (dist < 1){
+        if (!d._pause) d._pause = Date.now();
+        if (Date.now() - d._pause > 1000){
+          const canvas = document.getElementById('map-canvas');
+          d._target = { x: Math.random()*canvas.width, y: Math.random()*canvas.height };
+          d._pause = 0;
+        }
+      } else {
+        const nx = d.x + (dx/dist)*SPEED;
+        const ny = d.y + (dy/dist)*SPEED;
+        d.x = nx; d.y = ny;
+        moved = true;
+      }
+    }
+    if (typeof window.drawMap === 'function') window.drawMap();
+    window.requestAnimationFrame(step);
+  }
+  window.requestAnimationFrame(step);
+})();
