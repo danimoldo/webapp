@@ -1,5 +1,13 @@
 // js/ui.js
 import { toast, downloadJSON } from "./utils.js";
+// Hide/Show left panel
+document.addEventListener("click", (e)=>{
+  if (e.target.id === "toggle-left") {
+    const root = document.querySelector(".layout");
+    const collapsed = root.classList.toggle("left-collapsed");
+    e.target.textContent = collapsed ? "Arată panoul" : "Ascunde panoul";
+  }
+});
 export function initUI(state){
   const $ = (s)=>document.querySelector(s);
   $("#btn-pause").addEventListener("click", ()=>{
