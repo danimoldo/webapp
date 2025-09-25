@@ -27,3 +27,24 @@ h3{margin:0 0 .5rem 0;font-size:14px;color:#cfe1ff;text-transform:uppercase;lett
 .toolbar{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,rgba(10,12,15,.95),rgba(10,12,15,.7));backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
 .toolbar-inner{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.6rem}
 .toast{position:absolute;left:50%;transform:translateX(-50%);bottom:1rem;background:#0f1317;border:1px solid var(--border);padding:.5rem 1rem;border-radius:.5rem}
+.legend-floating{
+  position:absolute;
+  right:.8rem; bottom:.8rem;
+  z-index:20;
+}
+.legend.island{
+  background:rgba(15,19,23,.9);
+  border:1px solid var(--border);
+  border-radius:.8rem;
+  padding:.6rem .8rem;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+}
+.legend.island .legend-title{
+  font-size:.8rem;
+  color:#cfe1ff;
+  margin-bottom:.4rem;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+.legend.island ul{list-style:none;margin:0;padding:0;display:grid;gap:.3rem}
+.legend.island li{white-space:nowrap}
