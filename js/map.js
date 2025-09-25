@@ -7,7 +7,15 @@ export async function initMap(state){
   state.canvas = canvas;
   state._mapCtx = ctx;
 
-  // handle resize
+  // offscreen layer for static floor + zones (define BEFORE resize uses it)
+  const layer = document.createElement("canvas");
+  const lctx = layer.getContext("2d");
+  function resizeLayer(){
+    layer.width = canvas.width;
+    layer.height = canvas.height;
+  }
+
+  // handle resize (now safe to call resizeLayer)
   function resize(){
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
@@ -17,14 +25,6 @@ export async function initMap(state){
   }
   new ResizeObserver(resize).observe(canvas);
   resize();
-
-  // offscreen layer for static floor + zones
-  const layer = document.createElement("canvas");
-  const lctx = layer.getContext("2d");
-  function resizeLayer(){
-    layer.width = canvas.width;
-    layer.height = canvas.height;
-  }
 
   // load floor image
   const img = new Image();
