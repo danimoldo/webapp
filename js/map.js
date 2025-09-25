@@ -72,7 +72,39 @@ export async function initMap(state){
       ctx.lineWidth = 3;
       ctx.strokeStyle = a.status === "idle" ? "#9097a2" : "#25c47a";
       ctx.stroke();
+      /* highlight ring */
+      if (a.id === state.selectedId || a.id === state.hoveredId){
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, 11, 0, Math.PI*2);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = a.id === state.selectedId ? "#cfe1ff" : "#8a98a9";
+        ctx.stroke();
+      }
     }
   }
+
+  // hover & click to highlight
+  canvas.addEventListener('mousemove', (e)=>{
+    const r = canvas.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    let found = null, minD = 9999;
+    for (const a of state.assets){
+      const d = Math.hypot(a.x - x, a.y - y);
+      if (d < 14 && d < minD){ minD = d; found = a.id; }
+    }
+    const prev = state.hoveredId;
+    state.hoveredId = found;
+    if (prev !== state.hoveredId){
+      if (typeof window.renderList === 'function'){ window.renderList(state); }
+      draw();
+    }
+  });
+  canvas.addEventListener('mouseleave', ()=>{
+    if (state.hoveredId){ state.hoveredId = null; if (typeof window.renderList === 'function') window.renderList(state); draw(); }
+  });
+  canvas.addEventListener('click', (e)=>{
+    if (state.hoveredId){ state.selectedId = state.hoveredId; if (typeof window.renderDetails === 'function') window.renderDetails(state); if (typeof window.renderList === 'function') window.renderList(state); draw(); }
+  });
+
   return { draw, canvas, ctx };
 }

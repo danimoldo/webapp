@@ -2,3 +2,7 @@
 .footer{padding:.8rem;color:var(--muted);text-align:center}
 
 .floating-legend .dot{margin-right:.5rem}
+
+/* highlight states for asset list */
+.list-item.active{outline:1px solid var(--accent); background:#121920}
+.list-item.hovered{outline:1px dashed var(--muted)}

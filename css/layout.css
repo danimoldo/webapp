@@ -23,3 +23,7 @@
   #map-area{order:2;height:70vh}
   #floating-legend{position:static;margin:.8rem auto 0 auto}
 }
+
+
+/* Sidebar sticky & scrollable */
+#left-panel{position:sticky; top:.8rem; align-self:start; max-height:calc(100vh - 1.6rem); overflow:auto}

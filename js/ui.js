@@ -70,6 +70,7 @@ export function initUI(state){
 }
 
 export function renderList(state){
+  window.renderList = renderList;
   const list = document.getElementById("asset-list");
   const filter = [...state.filters][0];
   const items = state.assets.filter(a=>{
@@ -81,14 +82,23 @@ export function renderList(state){
     return true;
   });
   list.innerHTML = items.map(a => `
-    <div class="list-item" data-id="${a.id}">
+    <div class="list-item ${a.id===state.selectedId?'active':''} ${a.id===state.hoveredId?'hovered':''}" data-id="${a.id}">
       <div><strong>${a.type==="forklift"?"Stivuitor":"Lifter"} ${a.id}</strong></div>
       <div class="meta">Verificat ${a.checked} • Aprobat ${a.approved}</div>
       <div class="meta">${a.status==="idle"?"Inactiv >5m":"În mișcare"}</div>
     </div>
   `).join("");
+  list.querySelectorAll('.list-item').forEach(el=>{
+    el.addEventListener('click',()=>{
+      state.selectedId = el.getAttribute('data-id');
+      renderDetails(state);
+      renderList(state);
+      const s = document.querySelector('.list-item.active'); if (s) s.scrollIntoView({block:'nearest', behavior:'smooth'});
+    });
+  });
 }
 export function renderDetails(state){
+  window.renderDetails = renderDetails;
   const box = document.getElementById("details");
   const a = state.assets.find(x=>x.id===state.selectedId);
   if(!a){ box.textContent = "Selectează un activ."; return; }
