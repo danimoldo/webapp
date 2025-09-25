@@ -17,9 +17,7 @@
       <div id="toolbar" class="toolbar toolbar-overlay"></div>
       <canvas id="map-canvas"></canvas>
       <div id="toast" class="toast" hidden></div>
-    </main>
-    <aside id="right-panel"></aside>
-  </div>
+    </main></div>
   <script type="module" src="js/main.js"></script>
 
   <div id="floating-legend" class="floating-legend" aria-hidden="false">
@@ -34,6 +32,27 @@
       </ul>
     </div>
   </div>
+
+
+<!-- Add Device Modal -->
+<div id="add-device-modal" class="modal" hidden>
+  <div class="modal-dialog">
+    <h3>Adaugă dispozitiv</h3>
+    <label>Tip:
+      <select id="add-type">
+        <option value="forklift">Stivuitor</option>
+        <option value="lifter">Lifter</option>
+        <option value="extinguisher">Extinctor</option>
+      </select>
+    </label>
+    <label>ID: <input id="add-id" placeholder="ex: F-006"></label>
+    <label>Plasare pe hartă după salvare: <input type="checkbox" id="add-place" checked></label>
+    <div class="modal-actions">
+      <button id="add-save" class="btn">Salvează</button>
+      <button id="add-cancel" class="btn btn-alt">Anulează</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

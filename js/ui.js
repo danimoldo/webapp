@@ -1,6 +1,20 @@
 // js/ui.js
 import { toast, downloadJSON } from "./utils.js";
 export function initUI(state){
+
+  // Floating left sidebar toggle icon
+  const toggleIcon = document.getElementById("left-toggle");
+  if (toggleIcon){
+    toggleIcon.addEventListener("click", ()=>{
+      document.body.classList.toggle("left-collapsed");
+      // Persist preference in session
+      try { sessionStorage.setItem("leftCollapsed", document.body.classList.contains("left-collapsed") ? "1" : "0"); } catch(e){}
+    });
+    try { if (sessionStorage.getItem("leftCollapsed")==="1") document.body.classList.add("left-collapsed"); } catch(e){}
+  }
+
+  // Zones UX: cursor, hint, undo (Esc cancels polygon, Z undoes last point)
+
   const $ = (s)=>document.querySelector(s);
   $("#btn-pause").addEventListener("click", ()=>{
     state.paused = !state.paused;
@@ -16,6 +30,8 @@ export function initUI(state){
     toast("Poziția a fost resetată.");
   });
   $("#btn-zones").addEventListener("click", ()=>{
+    state.canvas.classList.add("drawing-zones");
+    const hint = document.createElement("div"); hint.className="zone-hint"; hint.textContent="Mod zone: click pentru puncte • dublu-click închide • Z = undo • Esc = anulare"; document.body.appendChild(hint);
     toast("Modul desenare zone activat: click pentru a crea poligoane; dublu-click pentru a închide.");
     let current = [];
     const onClick = (e)=>{
@@ -37,8 +53,6 @@ export function initUI(state){
     state.zones.length = 0;
     toast("Zonele au fost șterse.");
   });
-  $("#btn-upload").addEventListener("click", ()=> $("#file-input").click());
-  $("#file-input").addEventListener("change", (e)=>{
     const f = e.target.files[0]; if (!f) return;
     const url = URL.createObjectURL(f);
     const img = new Image();
@@ -65,8 +79,56 @@ export function initUI(state){
   document.getElementById("asset-list").addEventListener("click", (e)=>{
     const item = e.target.closest(".list-item"); if (!item) return;
     state.selectedId = item.dataset.id;
-    renderDetails(state);
+    /* details panel removed */
   });
+  // Open Add Device modal from left panel
+  document.getElementById("left-panel").addEventListener("click", (e)=>{
+    const b = e.target.closest("[data-action='add-device']"); if (!b) return;
+    const modal = document.getElementById("add-device-modal");
+    modal.hidden = false;
+  });
+  // Modal buttons
+  const modal = document.getElementById("add-device-modal");
+  if (modal){
+    modal.addEventListener("click", (e)=>{
+      if (e.target === modal) { modal.hidden = true; }
+    });
+    modal.querySelector("#add-cancel").addEventListener("click", ()=> modal.hidden = true);
+    modal.querySelector("#add-save").addEventListener("click", ()=>{
+      const type = modal.querySelector("#add-type").value;
+      const id = modal.querySelector("#add-id").value.trim() || (type==='extinguisher'?'E-NEW':'NOU');
+      const place = modal.querySelector("#add-place").checked;
+      const now = performance.now();
+      if (type === 'extinguisher'){
+        const ext = { id, x: 40, y: 40, expired: false };
+        if (place){
+          placeOnMap((x,y)=>{ ext.x=x; ext.y=y; state.extinguishers.push(ext); finishAdd(); });
+        } else { state.extinguishers.push(ext); finishAdd(); }
+      } else {
+        const a = { id, type, x: 60, y: 60, vx:0, vy:0, status:"moving", lastMove: now, checked: "nou", approved: "nou" };
+        if (place){
+          placeOnMap((x,y)=>{ a.x=x; a.y=y; state.assets.push(a); finishAdd(); });
+        } else { state.assets.push(a); finishAdd(); }
+      }
+      function finishAdd(){
+        modal.hidden = true;
+        if (typeof window.renderList === 'function') window.renderList(state);
+        if (typeof window.drawMap === 'function') window.drawMap();
+        toast("Dispozitiv adăugat.");
+      }
+    });
+  }
+  function placeOnMap(cb){
+    toast("Click pe hartă pentru a plasa dispozitivul.");
+    const once = (e)=>{
+      const r = state.canvas.getBoundingClientRect();
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      state.canvas.removeEventListener("click", once);
+      cb(x,y);
+    };
+    state.canvas.addEventListener("click", once);
+  }
+
 }
 
 export function renderList(state){
@@ -91,7 +153,7 @@ export function renderList(state){
   list.querySelectorAll('.list-item').forEach(el=>{
     el.addEventListener('click',()=>{
       state.selectedId = el.getAttribute('data-id');
-      renderDetails(state);
+      /* details panel removed */
       renderList(state);
       const s = document.querySelector('.list-item.active'); if (s) s.scrollIntoView({block:'nearest', behavior:'smooth'});
     });

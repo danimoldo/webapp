@@ -2,7 +2,7 @@
 import { clamp } from "./utils.js";
 export async function initMap(state){
   const canvas = document.getElementById("map-canvas");
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d"); state._mapCtx = ctx;
   const resize = () => {
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
@@ -34,6 +34,7 @@ export async function initMap(state){
   window.addEventListener("mouseup", ()=> dragging = null);
 
   function draw(){
+    window.drawMap = draw;
     ctx.clearRect(0,0,canvas.width,canvas.height);
     // floor:
     if (img && img.width){

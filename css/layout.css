@@ -27,3 +27,69 @@
 
 /* Sidebar sticky & scrollable */
 #left-panel{position:sticky; top:.8rem; align-self:start; max-height:calc(100vh - 1.6rem); overflow:auto}
+
+
+/* --- Collapsible left panel --- */
+body.left-collapsed #left-panel { width: 0; min-width: 0; overflow: hidden; border-right: none; }
+body.left-collapsed #left-panel .panel { display:none; }
+body.left-collapsed #map-area { grid-column: 1 / -1; }
+
+/* --- Toolbar polish --- */
+.toolbar-overlay {
+  backdrop-filter: blur(8px);
+  background: rgba(18, 22, 28, 0.55);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+}
+
+/* --- Sidebar toggle icon --- */
+.sidebar-toggle {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 40;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(18,22,28,0.8);
+  color: #e7ecf3;
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: transform .15s ease, background .2s ease;
+}
+.sidebar-toggle:hover { transform: scale(1.05); background: rgba(18,22,28,0.9); }
+
+/* Shift toggle when sidebar is collapsed */
+body.left-collapsed .sidebar-toggle { left: 16px; }
+
+/* --- Zone drawing UX --- */
+.drawing-zones { cursor: crosshair !important; }
+.zone-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #cfd8e3;
+  background: rgba(18,22,28,0.85);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Active list selected/hover improvements */
+.list-item.selected { outline: 2px solid #3a7bff33; background: #142036; }
+.list-item:hover { background: #0f1725; }
+
+/* Modal */
+.modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,0.45); z-index: 50; }
+.modal[hidden]{ display:none; }
+.modal-dialog { min-width: 320px; background: #121821; border:1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); color:#e7ecf3; }
+.modal-dialog label { display:block; font-size:13px; margin: 10px 0; }
+.modal-dialog input, .modal-dialog select { width: 100%; padding:8px; background:#0b1016; border:1px solid #223045; color:#e7ecf3; border-radius:8px; }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top: 12px; }
