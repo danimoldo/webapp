@@ -41,39 +41,55 @@ async function boot(){
 boot();
 
 
-// --- Movement driver fallback (added by assistant) ---
+// --- UI handlers (added) ---
+(function(){
+  document.addEventListener('click', (e)=>{
+    // Toggle left panel
+    if (e.target && e.target.id === 'btn-toggle-left'){
+      document.body.classList.toggle('left-collapsed');
+    }
+    // Add device
+    if (e.target && e.target.id === 'btn-add-device'){
+      const type = prompt('Tip dispozitiv (forklift/lifter):','forklift');
+      if (!type || !/^(forklift|lifter)$/i.test(type)) return;
+      const id = prompt('ID dispozitiv (ex: F-006 sau L-006):','');
+      if (!id) return;
+      const canvas = document.getElementById('map-canvas');
+      const dev = { id, type: type.toLowerCase(), x: Math.random()*(canvas?canvas.width:500), y: Math.random()*(canvas?canvas.height:300) };
+      window.__devices = window.__devices || [];
+      window.__devices.push(dev);
+      if (typeof window.drawMap === 'function') window.drawMap();
+    }
+  });
+})();
+
+
+// --- Movement driver fallback (added) ---
 (function(){
   if (window.__movementDriverAdded) return;
   window.__movementDriverAdded = true;
-  const SPEED = 0.5; // pixels per frame
+  const SPEED = 0.6; // px per frame
   function step(){
     const devices = window.__devices || [];
-    let moved = false;
     for (let d of devices){
-      if (!d._target) {
-        const canvas = document.getElementById('map-canvas');
-        if (!canvas) continue;
-        d._target = { x: Math.random()*canvas.width, y: Math.random()*canvas.height };
-      }
-      const dx = d._target.x - d.x;
-      const dy = d._target.y - d.y;
-      const dist = Math.sqrt(dx*dx+dy*dy);
+      const canvas = document.getElementById('map-canvas');
+      if (!canvas) continue;
+      if (!d._target) d._target = { x: Math.random()*canvas.width, y: Math.random()*canvas.height };
+      const dx = d._target.x - d.x, dy = d._target.y - d.y;
+      const dist = Math.hypot(dx,dy);
       if (dist < 1){
-        if (!d._pause) d._pause = Date.now();
-        if (Date.now() - d._pause > 1000){
-          const canvas = document.getElementById('map-canvas');
+        if (!d._pause) d._pause = performance.now();
+        if (performance.now() - d._pause > 1000){
           d._target = { x: Math.random()*canvas.width, y: Math.random()*canvas.height };
           d._pause = 0;
         }
       } else {
-        const nx = d.x + (dx/dist)*SPEED;
-        const ny = d.y + (dy/dist)*SPEED;
-        d.x = nx; d.y = ny;
-        moved = true;
+        d.x += (dx/dist)*SPEED;
+        d.y += (dy/dist)*SPEED;
       }
     }
     if (typeof window.drawMap === 'function') window.drawMap();
-    window.requestAnimationFrame(step);
+    requestAnimationFrame(step);
   }
-  window.requestAnimationFrame(step);
+  requestAnimationFrame(step);
 })();
