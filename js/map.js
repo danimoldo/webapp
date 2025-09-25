@@ -129,7 +129,6 @@ export async function initMap(state){
     let prev = state.hoveredId;
     state.hoveredId = null;
     let tipText = "";
-    // assets
     for (const a of state.assets){
       if (Math.hypot(a.x - p.x, a.y - p.y) < 10){
         state.hoveredId = a.id;
@@ -139,7 +138,6 @@ export async function initMap(state){
         break;
       }
     }
-    // extinguishers (if none hovered yet)
     if (!state.hoveredId){
       for (const ex of state.extinguishers){
         if (Math.hypot(ex.x - p.x, ex.y - p.y) < 10){
@@ -149,11 +147,7 @@ export async function initMap(state){
         }
       }
     }
-    if (state.hoveredId){
-      showTip(tipText, e);
-    } else {
-      hideTip();
-    }
+    if (state.hoveredId){ showTip(tipText, e); } else { hideTip(); }
     if (prev !== state.hoveredId){
       if (typeof window.renderList === "function"){ window.renderList(state); }
       draw();

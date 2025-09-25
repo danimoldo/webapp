@@ -1,6 +1,83 @@
 // js/ui.js
 import { toast, downloadJSON } from "./utils.js";
 export function initUI(state){
+  // List interaction
+  const listEl = document.getElementById('asset-list');
+  if (listEl && !listEl.dataset.bound){
+    listEl.dataset.bound = '1';
+    listEl.addEventListener('click', (e)=>{
+      const actBtn = e.target.closest('.action');
+      const item = e.target.closest('.list-item');
+      if (actBtn){
+        const id = actBtn.dataset.id;
+        const a = state.assets.find(x=>x.id===id) || state.extinguishers.find(x=>x.id===id);
+        const act = actBtn.dataset.action;
+        if (act==='delete'){
+          if (confirm('Sigur ștergi ' + id + '?')){
+            const ai = state.assets.findIndex(x=>x.id===id);
+            if (ai>=0) state.assets.splice(ai,1);
+            const ei = state.extinguishers.findIndex(x=>x.id===id);
+            if (ei>=0) state.extinguishers.splice(ei,1);
+            if (state.selectedId===id) state.selectedId = null;
+            if (typeof window.renderList==='function') window.renderList(state);
+            if (typeof window.drawMap==='function') window.drawMap();
+          }
+          return;
+        }
+        if (act==='move'){
+          const handler = (ev)=>{
+            const r = state.canvas.getBoundingClientRect();
+            const x = (ev.clientX - r.left), y = (ev.clientY - r.top);
+            if ('x' in a){ a.x = x; a.y = y; }
+            if (typeof window.renderList==='function') window.renderList(state);
+            if (typeof window.drawMap==='function') window.drawMap();
+          };
+          toast('Click pe hartă pentru noua poziție ('+id+').');
+          state.canvas.addEventListener('click', handler, { once:true });
+          return;
+        }
+        if (act==='edit'){
+          const modal = document.getElementById('add-device-modal');
+          if (!modal){ alert('Modal indisponibil.'); return; }
+          modal.hidden = false;
+          // reset listeners by cloning
+          const saveOld = modal.querySelector('#add-save');
+          const cancelOld = modal.querySelector('#add-cancel');
+          const save = saveOld.cloneNode(true); const cancel = cancelOld.cloneNode(true);
+          saveOld.replaceWith(save); cancelOld.replaceWith(cancel);
+          // populate
+          const isExt = !!state.extinguishers.find(x=>x.id===id);
+          modal.querySelector('#add-type').value = isExt ? 'extinguisher' : (a.type||'forklift');
+          modal.querySelector('#add-id').value = a.id;
+          const extBox = modal.querySelector('#ext-fields');
+          if (extBox) extBox.style.display = isExt ? 'block':'none';
+          const extChk = modal.querySelector('#add-ext-expired');
+          if (extChk) extChk.checked = !!a.expired;
+          // handlers
+          cancel.addEventListener('click', ()=> modal.hidden = true, {once:true});
+          modal.addEventListener('click', (ev)=>{ if (ev.target===modal) modal.hidden = true; }, {once:true});
+          save.addEventListener('click', ()=>{
+            const newType = modal.querySelector('#add-type').value;
+            const newId = modal.querySelector('#add-id').value.trim() || a.id;
+            a.id = newId;
+            if (!isExt){ a.type = newType; } else { const chk = modal.querySelector('#add-ext-expired'); if (chk) a.expired = !!chk.checked; }
+            modal.hidden = true;
+            if (typeof window.renderList==='function') window.renderList(state);
+            if (typeof window.drawMap==='function') window.drawMap();
+          }, {once:true});
+          return;
+        }
+      }
+      // normal item selection
+      if (item){
+        const id = item.dataset.id;
+        state.selectedId = id;
+        if (typeof window.drawMap==='function') window.drawMap();
+        if (typeof window.renderList==='function') window.renderList(state);
+      }
+    });
+  }
+
   // Restore persisted left panel & filters & zoom
   try {
     const lf = localStorage.getItem("leftCollapsed"); if (lf==="1") document.body.classList.add("left-collapsed");
