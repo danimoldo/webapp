@@ -12,3 +12,6 @@
 .list .status-dot { display:inline-block; width:8px; height:8px; border-radius:999px; margin-right:6px; vertical-align:middle; }
 .status-moving { background:#25c47a; }
 .status-idle { background:#9097a2; }
+
+.status-expired { background:#ff5a73; }
+.status-ok { background:#25c47a; }

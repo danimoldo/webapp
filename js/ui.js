@@ -21,6 +21,13 @@ export function initUI(state){
     try { if (sessionStorage.getItem("leftCollapsed")==="1") document.body.classList.add("left-collapsed"); } catch(e){}
   }
 
+  // Sidebar collapse from left panel header
+  const collapseBtn = document.getElementById("btn-left-collapse");
+  if (collapseBtn){ collapseBtn.addEventListener("click", ()=>{
+    document.body.classList.toggle("left-collapsed");
+    try { localStorage.setItem("leftCollapsed", document.body.classList.contains("left-collapsed") ? "1":"0"); } catch(e){}
+  }); }
+
   // Zones UX: cursor, hint, undo (Esc cancels polygon, Z undoes last point)
 
   const $ = (s)=>document.querySelector(s);
@@ -100,11 +107,7 @@ if (typeof window.drawMap === 'function') window.drawMap();
     /* details panel removed */
   });
   // Open Add Device modal from left panel
-  document.getElementById("left-panel").addEventListener("click", (e)=>{
-    const b = e.target.closest("[data-action='add-device']"); if (!b) return;
-    const modal = document.getElementById("add-device-modal");
-    modal.hidden = false;
-  });
+  document.getElementById("btn-add-device")?.addEventListener("click", ()=>{ const modal = document.getElementById("add-device-modal"); if(modal) modal.hidden = false; });
   // Modal buttons
   const modal = document.getElementById("add-device-modal");
   if (modal){
@@ -112,13 +115,18 @@ if (typeof window.drawMap === 'function') window.drawMap();
       if (e.target === modal) { modal.hidden = true; }
     });
     modal.querySelector("#add-cancel").addEventListener("click", ()=> modal.hidden = true);
+    const typeSel = modal.querySelector("#add-type");
+    const extFields = modal.querySelector("#ext-fields");
+    typeSel.addEventListener("change", ()=>{ extFields.style.display = (typeSel.value==="extinguisher")?"block":"none"; });
+    extFields.style.display = (typeSel.value==="extinguisher")?"block":"none";
     modal.querySelector("#add-save").addEventListener("click", ()=>{
       const type = modal.querySelector("#add-type").value;
       const id = modal.querySelector("#add-id").value.trim() || (type==='extinguisher'?'E-NEW':'NOU');
       const place = modal.querySelector("#add-place").checked;
       const now = performance.now();
       if (type === 'extinguisher'){
-        const ext = { id, x: 40, y: 40, expired: false };
+        const expired = modal.querySelector('#add-ext-expired')?.checked || false;
+        const ext = { id, x: 40, y: 40, expired };
         if (place){
           placeOnMap((x,y)=>{ ext.x=x; ext.y=y; state.extinguishers.push(ext); finishAdd(); });
         } else { state.extinguishers.push(ext); finishAdd(); }
@@ -182,7 +190,7 @@ export function renderList(state){
   ].filter(matchFilters);
 
   list.innerHTML = items.map(a=>{
-    const statusDot = a.type==="extinguisher" ? (a.expired? "status-idle" : "status-moving") : (a.status==="idle"?"status-idle":"status-moving");
+    const statusDot = a.type==="extinguisher" ? (a.expired? "status-expired" : "status-ok") : (a.status==="idle"?"status-idle":"status-moving");
     const subtitle = a.type==="extinguisher" ? (a.expired?"Expirat":"Funcțional") : (a.status==="idle"?"Inactiv >5m":"În mișcare");
     const title = (a.type==="forklift"?"Stivuitor": a.type==="lifter"?"Lifter":"Extinctor") + " " + a.id;
     const sel = (state.selectedId===a.id) ? " selected" : "";
