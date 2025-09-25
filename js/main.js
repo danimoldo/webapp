@@ -5,15 +5,104 @@ import { renderList, renderDetails, initUI } from "./ui.js";
 import { startSim } from "./sim.js";
 import { initMap } from "./map.js";
 
+
+// Inline data fallbacks for offline/file:// usage
+const __INLINE_MACHINES__ = JSON.parse(String.raw`{
+  "forklifts": [
+    {
+      "id": "F-001",
+      "checked": "9z în urmă",
+      "approved": "25z în urmă"
+    },
+    {
+      "id": "F-002",
+      "checked": "12z în urmă",
+      "approved": "2z în urmă"
+    },
+    {
+      "id": "F-003",
+      "checked": "20z în urmă",
+      "approved": "1z în urmă"
+    },
+    {
+      "id": "F-004",
+      "checked": "5z în urmă",
+      "approved": "8z în urmă"
+    },
+    {
+      "id": "F-005",
+      "checked": "30z în urmă",
+      "approved": "30z în urmă"
+    }
+  ],
+  "lifters": [
+    {
+      "id": "L-001",
+      "checked": "10z în urmă",
+      "approved": "40z în urmă"
+    },
+    {
+      "id": "L-002",
+      "checked": "14z în urmă",
+      "approved": "40z în urmă"
+    },
+    {
+      "id": "L-003",
+      "checked": "3z în urmă",
+      "approved": "12z în urmă"
+    },
+    {
+      "id": "L-004",
+      "checked": "15z în urmă",
+      "approved": "18z în urmă"
+    },
+    {
+      "id": "L-005",
+      "checked": "18z în urmă",
+      "approved": "20z în urmă"
+    }
+  ]
+}`);
+const __INLINE_EXTS__ = JSON.parse(String.raw`[
+  {
+    "id": "E-01",
+    "x": 120,
+    "y": 340,
+    "expires": "2026-02-01",
+    "expired": false
+  },
+  {
+    "id": "E-02",
+    "x": 220,
+    "y": 120,
+    "expires": "2024-07-01",
+    "expired": true
+  },
+  {
+    "id": "E-03",
+    "x": 420,
+    "y": 260,
+    "expires": "2025-12-20",
+    "expired": false
+  }
+]`);
+
 async function boot(){
   await mountPartials();
   const state = initState();
 
   // Load data
-  const [machines, exts] = await Promise.all([
-    fetch("data/machines.json").then(r=>r.json()),
-    fetch("data/extinguishers.json").then(r=>r.json())
-  ]);
+  let machines, exts;
+  try {
+    const resM = await fetch("data/machines.json");
+    const resE = await fetch("data/extinguishers.json");
+    if (!resM.ok || !resE.ok) throw new Error("fetch failed");
+    machines = await resM.json();
+    exts = await resE.json();
+  } catch(e){
+    machines = __INLINE_MACHINES__;
+    exts = __INLINE_EXTS__;
+  }
   const canvas = document.getElementById("map-canvas");
   const { draw, canvas: cnv } = await initMap(state);
   state.draw = draw; state.canvas = cnv;
