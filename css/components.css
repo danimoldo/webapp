@@ -1,5 +1,1 @@
-.details{color:var(--muted)}
-.footer{padding:.8rem;color:var(--muted);text-align:center}
-.row-between{display:flex;justify-content:space-between;align-items:center;gap:.5rem}
-.add-group{display:flex;gap:.35rem;flex-wrap:wrap}
-.collapsed-toggle .full{width:100%}
+.details{color:var(--muted)}.footer{padding:.8rem;color:var(--muted);text-align:center}
