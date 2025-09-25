@@ -111,23 +111,55 @@ export async function initMap(state){
   window.drawMap = draw;
   state.draw = draw;
 
+  const tip = document.getElementById("map-tooltip");
+  const area = document.getElementById("map-area");
+  function showTip(text, ev){
+    if (!tip || !area) return;
+    tip.textContent = text;
+    tip.hidden = false;
+    const r = area.getBoundingClientRect();
+    tip.style.left = (ev.clientX - r.left + 12) + "px";
+    tip.style.top  = (ev.clientY - r.top  - 12) + "px";
+  }
+  function hideTip(){ if (tip) tip.hidden = true; }
+
   // hover highlight over assets
   canvas.addEventListener("mousemove", (e)=>{
     const p = toLogical(e);
     let prev = state.hoveredId;
     state.hoveredId = null;
+    let tipText = "";
+    // assets
     for (const a of state.assets){
       if (Math.hypot(a.x - p.x, a.y - p.y) < 10){
         state.hoveredId = a.id;
+        const status = (a.status==="idle") ? "Inactiv >5m" : "În mișcare";
+        const label = (a.type==="forklift"?"Stivuitor": a.type==="lifter"?"Lifter":"Dispozitiv");
+        tipText = `${label} ${a.id} • ${status}`;
         break;
       }
+    }
+    // extinguishers (if none hovered yet)
+    if (!state.hoveredId){
+      for (const ex of state.extinguishers){
+        if (Math.hypot(ex.x - p.x, ex.y - p.y) < 10){
+          state.hoveredId = ex.id;
+          tipText = `Extinctor ${ex.id} • ${ex.expired ? "Expirat" : "Funcțional"}`;
+          break;
+        }
+      }
+    }
+    if (state.hoveredId){
+      showTip(tipText, e);
+    } else {
+      hideTip();
     }
     if (prev !== state.hoveredId){
       if (typeof window.renderList === "function"){ window.renderList(state); }
       draw();
     }
   });
-  canvas.addEventListener("mouseleave", ()=>{
+  canvas.addEventListener("mouseleave", ()=>{ hideTip();
     if (state.hoveredId){
       state.hoveredId = null;
       if (typeof window.renderList === "function"){ window.renderList(state); }
