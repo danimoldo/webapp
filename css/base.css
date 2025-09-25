@@ -27,3 +27,13 @@ h3{margin:0 0 .5rem 0;font-size:14px;color:#cfe1ff;text-transform:uppercase;lett
 .toolbar{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,rgba(10,12,15,.95),rgba(10,12,15,.7));backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
 .toolbar-inner{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.6rem}
 .toast{position:absolute;left:50%;transform:translateX(-50%);bottom:1rem;background:#0f1317;border:1px solid var(--border);padding:.5rem 1rem;border-radius:.5rem}
+
+
+/* UI fine-tune */
+.toolbar-inner{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.5rem .6rem}
+.toolbar-left,.toolbar-right{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.btn{padding:.45rem .6rem;border-radius:.6rem}
+.btn + .btn{margin-left:.3rem}
+.chip-row{gap:.3rem}
+.chip{padding:.28rem .5rem;font-size:.86rem}
+.panel{padding:.7rem}

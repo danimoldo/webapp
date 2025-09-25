@@ -10,32 +10,32 @@ if (!window.__devices){
 import { rand } from "./utils.js";
 const SPEED_MPS = 1.39; // ~5 km/h
 export function startSim(state){
+  const SPEED_MPS = 1.39; // ~5 km/h
   function step(now){
-    const dt = Math.min(0.05, (now - state.lastTick)/1000); // clamp large jumps
+    const dt = Math.min(0.05, (now - state.lastTick)/1000);
     state.lastTick = now;
     if (!state.paused){
+      const maxPxPerSec = SPEED_MPS * state.pxPerMeter;
       for (const a of state.assets){
-        // Update idle/moving status
+        // set target if missing
+        if (!a._target || Math.hypot(a._target.x - a.x, a._target.y - a.y) < 5){
+          const w = state.canvas.width, h = state.canvas.height;
+          a._target = { x: Math.random()*w*0.9 + w*0.05, y: Math.random()*h*0.9 + h*0.05 };
+        }
+        // compute velocity towards target
+        const dx = a._target.x - a.x, dy = a._target.y - a.y;
+        const dist = Math.hypot(dx,dy) || 1;
+        a.vx = (dx/dist) * maxPxPerSec;
+        a.vy = (dy/dist) * maxPxPerSec;
+
+        // Update status
         const moving = Math.hypot(a.vx, a.vy) > 0.01;
         if (moving){ a.lastMove = now; }
         a.status = (now - a.lastMove) > (5*60*1000) ? "idle" : "moving";
 
-        // Random wandering inside canvas bounds
-        a.vx += rand(-0.5,0.5)*dt;
-        a.vy += rand(-0.5,0.5)*dt;
-
-        // Speed cap in px/s (convert meters to pixels using state.pxPerMeter)
-        const maxPxPerSec = SPEED_MPS * state.pxPerMeter;
-        const speed = Math.hypot(a.vx, a.vy);
-        const max = maxPxPerSec;
-        if (speed > max){ a.vx = a.vx / speed * max; a.vy = a.vy / speed * max; }
-
+        // integrate
         a.x += a.vx * dt;
         a.y += a.vy * dt;
-
-        // Bounce off edges
-        if (a.x < 10 || a.x > state.canvas.width-10) a.vx *= -1;
-        if (a.y < 10 || a.y > state.canvas.height-10) a.vy *= -1;
       }
     }
     state.draw();
