@@ -109,8 +109,53 @@ if (typeof window.drawMap === 'function') window.drawMap();
     /* details panel removed */
   });
   // Open Add Device modal from left panel
-  document.getElementById("btn-add-device")?.addEventListener("click", ()=>{ const modal = document.getElementById("add-device-modal"); if(modal) modal.hidden = false; });
-  // Modal buttons
+  const addBtn = document.getElementById("btn-add-device");
+  if (addBtn && !addBtn.dataset.bound){
+    addBtn.dataset.bound = "1";
+    addBtn.addEventListener("click", ()=>{ const modal = document.getElementById("add-device-modal"); if(modal) openAddModal(modal); });
+  }
+
+  function openAddModal(modal){
+    modal.hidden = false;
+    // reset buttons to avoid stacked listeners
+    const saveOld = modal.querySelector("#add-save");
+    const cancelOld = modal.querySelector("#add-cancel");
+    const save = saveOld.cloneNode(true); const cancel = cancelOld.cloneNode(true);
+    saveOld.replaceWith(save); cancelOld.replaceWith(cancel);
+    // type-dependent fields
+    const typeSel = modal.querySelector("#add-type");
+    const extFields = modal.querySelector("#ext-fields");
+    typeSel.addEventListener("change", ()=>{ extFields.style.display = (typeSel.value==="extinguisher")?"block":"none"; });
+    extFields.style.display = (typeSel.value==="extinguisher")?"block":"none";
+    // handlers
+    cancel.addEventListener("click", ()=> modal.hidden = true, {once:true});
+    modal.addEventListener("click", (e)=>{ if (e.target === modal) modal.hidden = true; }, {once:true});
+    save.addEventListener("click", ()=>{
+      const type = modal.querySelector("#add-type").value;
+      const id = modal.querySelector("#add-id").value.trim() || (type==='extinguisher'?'E-NEW':'NOU');
+      const place = modal.querySelector("#add-place").checked;
+      const now = performance.now();
+      if (type === 'extinguisher'){
+        const expired = modal.querySelector('#add-ext-expired')?.checked || false;
+        const ext = { id, x: 40, y: 40, expired };
+        if (place){
+          placeOnMap((x,y)=>{ ext.x=x; ext.y=y; state.extinguishers.push(ext); finishAdd(); });
+        } else { state.extinguishers.push(ext); finishAdd(); }
+      } else {
+        const a = { id, type, x: 60, y: 60, vx:0, vy:0, status:"moving", lastMove: now, checked: "nou", approved: "nou" };
+        if (place){
+          placeOnMap((x,y)=>{ a.x=x; a.y=y; state.assets.push(a); finishAdd(); });
+        } else { state.assets.push(a); finishAdd(); }
+      }
+      function finishAdd(){
+        modal.hidden = true;
+        if (typeof window.renderList === 'function') window.renderList(state);
+        if (typeof window.drawMap === 'function') window.drawMap();
+        toast("Dispozitiv adăugat.");
+      }
+    }, {once:true});
+  }
+// Modal buttons
   const modal = document.getElementById("add-device-modal");
   if (modal){
     modal.addEventListener("click", (e)=>{

@@ -115,6 +115,7 @@ export async function initMap(state){
 
   // hover handling
   canvas.addEventListener("mousemove", (e)=>{
+    if (draggingExt>=0){ const p = toLogical(e); const ex = state.extinguishers[draggingExt]; ex.x = p.x; ex.y = p.y; state.layerDirty = true; draw(); return; }
     const p = toLogical(e);
     let prev = state.hoveredId;
     state.hoveredId = null;
@@ -160,7 +161,9 @@ export async function initMap(state){
   // zoom
   // zone vertex dragging
   let draggingVertex = null; // {zoneIndex, vertexIndex}
+  let draggingExt = -1; // index in extinguishers
   canvas.addEventListener("mousedown", (e)=>{
+    draggingExt = -1;
     const p = toLogical(e);
     for (let zi=0; zi<state.zones.length; zi++){
       const poly = state.zones[zi];
@@ -174,8 +177,17 @@ export async function initMap(state){
         }
       }
     }
+    // try extinguisher drag
+    for (let i=0; i<state.extinguishers.length; i++){
+      const ex = state.extinguishers[i];
+      if (Math.hypot(ex.x - p.x, ex.y - p.y) < 10){ draggingExt = i; return; }
+    }
+        }
+      }
+    }
   });
   canvas.addEventListener("mousemove", (e)=>{
+    if (draggingExt>=0){ const p = toLogical(e); const ex = state.extinguishers[draggingExt]; ex.x = p.x; ex.y = p.y; state.layerDirty = true; draw(); return; }
     if (!draggingVertex) return;
     const p = toLogical(e);
     const poly = state.zones[draggingVertex.zoneIndex];
@@ -183,7 +195,7 @@ export async function initMap(state){
     state.layerDirty = true;
     draw();
   });
-  canvas.addEventListener("mouseup", ()=>{ draggingVertex = null; });
+  canvas.addEventListener("mouseup", ()=>{ draggingVertex = null; draggingExt = -1; });
 
   document.addEventListener("keydown", (e)=>{
     if (e.key === "Delete" && state.selectedZone != null){

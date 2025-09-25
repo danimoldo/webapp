@@ -178,3 +178,17 @@ body.left-collapsed .sidebar-toggle-floating { left: 12px; }
 }
 #left-panel .active-scroll { flex: 1; overflow-y: auto; }
 #left-panel .active-scroll .list { padding-bottom: 24px; }
+
+
+/* Fix overlap */
+#left-panel { position: relative; z-index: 5; background: #0b1016; }
+#map-area { position: relative; z-index: 1; }
+
+/* 2-column layout when no right panel */
+.layout.no-right{ grid-template-columns: 320px 1fr; }
+
+/* Left panel sticky/scroll rules (override any earlier overflow) */
+#left-panel { overflow: visible; }
+#left-panel .panel { height: 100%; display:flex; flex-direction:column; min-height:0; }
+#left-panel .filters-sticky { position: sticky; top: 0; background:#0b1016; z-index:10; }
+#left-panel .active-scroll { flex:1; overflow-y:auto; min-height:0; }
