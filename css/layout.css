@@ -165,3 +165,16 @@ body.left-collapsed .sidebar-toggle-floating { left: 12px; }
 @media (max-width: 700px){
   .sidebar-toggle-floating { top: 70px; transform: none; }
 }
+
+
+/* Left panel layout: sticky filters, scrollable active list */
+#left-panel { overflow: hidden; }
+#left-panel .panel { height: 100%; display: flex; flex-direction: column; }
+#left-panel .filters-sticky {
+  position: sticky; top: 0; z-index: 5;
+  background: #0b1016;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+#left-panel .active-scroll { flex: 1; overflow-y: auto; }
+#left-panel .active-scroll .list { padding-bottom: 24px; }

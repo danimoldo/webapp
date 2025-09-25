@@ -29,12 +29,7 @@ export function initUI(state){
   }); }
 
   // Sidebar collapse from left panel header
-  const collapseBtn = document.getElementById("btn-left-collapse");
-  if (collapseBtn){ collapseBtn.addEventListener("click", ()=>{
-    document.body.classList.toggle("left-collapsed");
-    try { localStorage.setItem("leftCollapsed", document.body.classList.contains("left-collapsed") ? "1":"0"); } catch(e){}
-  }); }
-
+  
   // Zones UX: cursor, hint, undo (Esc cancels polygon, Z undoes last point)
 
   const $ = (s)=>document.querySelector(s);
@@ -201,7 +196,7 @@ export function renderList(state){
     const subtitle = a.type==="extinguisher" ? (a.expired?"Expirat":"Funcțional") : (a.status==="idle"?"Inactiv >5m":"În mișcare");
     const title = (a.type==="forklift"?"Stivuitor": a.type==="lifter"?"Lifter":"Extinctor") + " " + a.id;
     const sel = (state.selectedId===a.id) ? " selected" : "";
-    return `<div class="list-item${sel}" data-id="${a.id}">
+    return `<div class="list-item${sel}${(state.hoveredId===a.id && state.selectedId!==a.id) ? " hovered" : ""}" data-id="${a.id}">
       <div><span class="status-dot ${statusDot}"></span> ${title}</div>
       <div class="meta">${a.checked? ("Verificat " + a.checked + " • Aprobat " + a.approved) : ""} ${a.type==="extinguisher"?"":""}</div>
       <div class="meta">${subtitle}</div>
