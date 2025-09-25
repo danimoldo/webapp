@@ -4,7 +4,37 @@
 - Datele se află în `data/*.json` (stivuitoare, liftere, extinctoare).
 - În toolbar: Încarcă imagine (schimbă harta), Pauză, Resetează poziția,
   Zone interzise (desenează poligoane), Șterge zonele, Descarcă config (JSON).
-
+  
+## Changelog (v5.3) – 2025-09-25
+** What’s new **
+- Multi-select filters (AND logic)
+- You can now select multiple chips at once: e.g. Stivuitoare + În mișcare.
+- “Toate” resets back to show everything.
+- Selected chips show an active style.
+- Persistent settings
+- Remembers: sidebar state, selected filters, zoom (saved in localStorage).
+- Restored automatically on reload.
+- Zone editing
+- Click a zone to select it.
+- Drag vertices (grab the small points) to reshape.
+- Delete selected zone with the Delete key.
+- Rename selected zone with the R key (prompt).
+- Zone names render near the centroid.
+- Static floor + zones are cached on an offscreen layer for speed.
+- Device actions in the list
+- Each item now has actions: Editează, Mută, Șterge.
+- Edit opens the existing modal prefilled.
+- Move lets you click the map to set a new position.
+- Delete removes the device (with confirm).
+- Scroll-to-selected & stronger sync
+- Clicking a dot selects list item, applies stronger highlight, and scrolls it into view.
+- Hovering list items highlights the dot on the map; leaving clears.
+- Mobile tweaks
+- Bigger touch targets for buttons and actions.
+- Sidebar becomes an overlay on smaller screens; toggle with the hamburger icon.
+- Small perf boost
+- Introduced a buffer canvas for static layers (floor + zones), redrawn only when needed.
+- Dynamic assets (dots) are drawn each frame on top — smoother on larger datasets.
 
 ## Changelog (v5.1) – 2025-09-25
 
