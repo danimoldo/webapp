@@ -9,6 +9,31 @@ document.addEventListener("click", (e)=>{
   }
 });
 export function initUI(state){
+  // Add new assets
+const $ = (s)=>document.querySelector(s);
+function addAsset(type){
+  const w = state.canvas.width, h = state.canvas.height;
+  const idPrefix = type==="forklift" ? "F" : (type==="lifter" ? "L" : "E");
+  const nextNum = (arr)=>String(arr.length+1).padStart(3,"0");
+  if (type==="ext"){
+    const id = `E-${nextNum(state.extinguishers)}`;
+    state.extinguishers.push({ id, x: Math.random()*w, y: Math.random()*h, expires:"2026-01-01", expired:false });
+  } else {
+    const id = `${idPrefix}-${nextNum(state.assets.filter(a=>a.type===type))}`;
+    state.assets.push({
+      id, type, x: Math.random()*w, y: Math.random()*h,
+      status: "moving", checked: "1z în urmă", approved: "1z în urmă",
+      heading: Math.random()*Math.PI*2, speedPx: 1.39*state.pxPerMeter
+    });
+  }
+  renderList(state);
+}
+
+$("#left-panel").addEventListener("click", (e)=>{
+  if (e.target.id === "add-forklift") addAsset("forklift");
+  if (e.target.id === "add-lifter") addAsset("lifter");
+  if (e.target.id === "add-ext") addAsset("ext");
+});
   const $ = (s)=>document.querySelector(s);
   $("#btn-pause").addEventListener("click", ()=>{
     state.paused = !state.paused;
