@@ -23,4 +23,13 @@
   </div>
   <script type="module" src="js/main.js"></script>
 </body>
+  <div id="boot-error" style="display:none;position:fixed;left:1rem;bottom:1rem;z-index:9999;padding:.6rem .8rem;background:#2b0f11;border:1px solid #ff5a73;border-radius:.5rem;color:#ffd9df"></div>
+<script>
+  window.addEventListener('error', e => {
+    const box = document.getElementById('boot-error');
+    box.style.display = 'block';
+    box.textContent = 'Eroare JS: ' + (e.message || e.error || 'necunoscută');
+    console.error('JS error', e);
+  });
+</script>
 </html>
