@@ -1,4 +1,4 @@
-import { rand } from "./utils.js";
+//* import { rand } from "./utils.js"; *//
 export function startSim(state){
   const SPEED_MPS = 1.39; // ~5 km/h
   function step(now){
