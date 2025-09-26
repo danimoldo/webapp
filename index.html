@@ -19,43 +19,59 @@
 
   <section class="toolbar">
     <label>Plan: <input type="file" id="fileFloor" accept="image/*"></label>
-    <button id="btnPlay">Redare</button>
-    <button id="btnPause">Pauză</button>
+    <button id="btnPlay" aria-pressed="true">Redare</button>
+    <button id="btnPause" aria-pressed="false">Pauză</button>
     <button id="btnReset">Reset poziții</button>
-    <button id="btnDrawZone">Zone interzise: Desenează</button>
+    <button id="btnDrawZone" aria-pressed="false">Zone interzise: Desenează</button>
     <button id="btnClearZones">Șterge zone</button>
-    <button id="btnHeatmap">Căldură mișcare</button>
+    <button id="btnHeatmap" aria-pressed="false">Căldură mișcare</button>
     <button id="btnExport">Export Config</button>
     <input type="file" id="fileImport" accept="application/json" style="display:none;">
     <button id="btnImport">Import Config</button>
-    <button id="btnScenarios">Scenarii Demo</button>
   </section>
 
   <section class="main">
     <div class="left">
       <div class="canvas-wrap">
+        <div class="minimap"><canvas id="minimap" width="220" height="132"></canvas></div>
         <canvas id="floor" width="1200" height="720"></canvas>
         <canvas id="overlay" width="1200" height="720"></canvas>
       </div>
       <div class="controls">
+        <div class="scenarios">
+          <button id="scnNoGo">Scenariu: Interdicție încălcată</button>
+          <button id="scnMeet">Scenariu: Apropiere periculoasă</button>
+          <button id="scnExpired">Scenariu: Inspecție expirată</button>
+        </div>
         <label>Lățime (m): <input type="number" id="siteW" value="250" min="10"></label>
         <label>Înălțime (m): <input type="number" id="siteH" value="150" min="10"></label>
         <button id="btnCalibrate">Calibrează</button>
         <label>Playback (min): <input type="range" id="playback" min="0" max="30" value="0"></label>
       </div>
       <div id="eventsPane"></div>
+      <div class="analytics" id="analytics">
+        <div class="events-head">
+          <strong>Analitice (ultimele 30 min)</strong>
+          <div>
+            <button id="btnRecalc" class="badge">Recalculează</button>
+            <button id="btnCSV" class="badge">Export CSV</button>
+          </div>
+        </div>
+        <div id="chartUtil" class="chart"></div>
+        <div class="legend"><span><span class="swatch"></span> % timp în mișcare</span></div>
+        <div id="chartEvents" class="chart"></div>
+        <div class="legend"><span><span class="swatch"></span> Nr. evenimente / asset</span></div>
+      </div>
     </div>
     <aside class="drawer" id="assetDrawer"></aside>
   </section>
 
   <footer>
-    <small>Viteză limită: 5 km/h • Zgomot de date simulat • Rulare locală</small>
+    <small>Viteză limită: 5 km/h • Zgomot de date simulat • Rulare locală sau WS dacă există</small>
   </footer>
 
-  <!-- Minimal QR code library (qrcode.js by Kazuhiko Arase, MIT) -->
+  <!-- Minimal QR library (global) -->
   <script>
-  // Tiny QR (version trimmed)
-  /*! qrcode.js v1.0 - Kazuhiko Arase - MIT */
   (function(){function p(a){this.mode=q.MODE_8BIT_BYTE;this.data=a}
   var q={PAD0:236,PAD1:17,MODE_8BIT_BYTE:4,ErrorCorrectLevel:{L:1,M:0,Q:3,H:2}};
   function r(a,b){this.typeNumber=a;this.errorCorrectLevel=b;this.modules=null;this.moduleCount=0;this.dataList=[]}
@@ -68,7 +84,7 @@
   })();
   </script>
 
-  <!-- Only load app.js as module -->
-<script type="module" src="js/app.js"></script>
+  <!-- Only app.js is a module -->
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>

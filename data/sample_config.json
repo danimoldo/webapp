@@ -7,7 +7,7 @@
   "zones": [
     {
       "id": "kitchen",
-      "name": "Bucătărie",
+      "name": "Bucatarie",
       "type": "no_go",
       "polygon": [
         [
