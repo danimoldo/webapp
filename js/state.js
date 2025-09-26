@@ -1,3 +1,4 @@
+// js/state.js
 export function initState() {
   return {
     paused: false,
@@ -6,10 +7,9 @@ export function initState() {
     extinguishers: [],
     selectedId: null,
     hoveredId: null,
-    zones: [],
+    zones: [], // array of polygons [[{x,y},...], ...]
     floorImage: null,
-    pxPerMeter: 3,
+    pxPerMeter: 3, // tune to your floor plan scale
     lastTick: performance.now(),
-    draw: ()=>{}
   };
 }

@@ -1,13 +1,14 @@
 <!doctype html>
 <html lang="ro">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Evora • Floor Demo</title>
-  <link rel="stylesheet" href="css/base.css"/>
-  <link rel="stylesheet" href="css/layout.css"/>
-  <link rel="stylesheet" href="css/components.css"/>
-  <script type="module" src="js/main.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Evora – Demo</title>
+  <link rel="preload" href="img/floor.png" as="image">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>/* fallback if css fails to load */ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;} </style>
 </head>
 <body>
   <div id="app" class="layout">
@@ -16,20 +17,23 @@
       <div id="toolbar" class="toolbar toolbar-overlay"></div>
       <canvas id="map-canvas"></canvas>
       <div id="toast" class="toast" hidden></div>
-      <div id="floating-legend" class="floating-legend" aria-hidden="false">
-        <div class="legend-inner">
-          <h4>Legendă</h4>
-          <ul class="legend">
-            <li><span class="dot dot-forklift"></span> Stivuitor</li>
-            <li><span class="dot dot-lifter"></span> Lifter</li>
-            <li><span class="badge ok">OK</span> În mișcare / OK</li>
-            <li><span class="badge idle">Idle</span> Inactiv &gt; 5m</li>
-            <li><span class="badge expired">Expirat</span> Extinctor expirat</li>
-          </ul>
-        </div>
-      </div>
     </main>
     <aside id="right-panel"></aside>
   </div>
+  <script type="module" src="js/main.js"></script>
+
+  <div id="floating-legend" class="floating-legend" aria-hidden="false">
+    <div class="legend-inner">
+      <h4>Legendă</h4>
+      <ul class="legend">
+        <li><span class="dot dot-forklift"></span> Stivuitor</li>
+        <li><span class="dot dot-lifter"></span> Lifter</li>
+        <li><span class="badge ok">OK</span> În mișcare / OK</li>
+        <li><span class="badge idle">Idle</span> Inactiv &gt; 5m</li>
+        <li><span class="badge expired">Expirat</span> Extinctor expirat</li>
+      </ul>
+    </div>
+  </div>
+
 </body>
 </html>
