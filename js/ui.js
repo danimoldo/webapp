@@ -1,5 +1,5 @@
 // js/ui.js
-// Safe fallbacks in case utils.js isn't in sync
+// Safe fallbacks (cache-safe)
 const toast = (Utils && typeof Utils.toast === "function")
   ? Utils.toast
   : function(msg){
@@ -27,6 +27,11 @@ const downloadJSON = (Utils && typeof Utils.downloadJSON === "function")
     };
 import * as Utils from "./utils.js";
 export function initUI(state){
+  // Defer until canvas is ready
+  if (!state || !state.canvas) {
+    requestAnimationFrame(()=>{ try { initUI(state); } catch(e) { /* retry */ } });
+    return;
+  }
   // List interaction
   const listEl = document.getElementById('asset-list');
   if (listEl && !listEl.dataset.bound){
@@ -135,7 +140,18 @@ export function initUI(state){
   
   // Zones UX: cursor, hint, undo (Esc cancels polygon, Z undoes last point)
 
-  const $ = (s)=>document.querySelector(s);
+  const $ = (s)=>{
+  const el = document.querySelector(s);
+  if (el) return el;
+  // safe proxy to avoid NPEs when sections are not mounted yet
+  return new Proxy({}, { get: (t, prop) => {
+    if (prop === 'addEventListener' || prop === 'removeEventListener') return ()=>{};
+    if (prop === 'classList') return new Proxy({}, { get: ()=> ()=>{} });
+    if (prop === 'style') return {};
+    if (prop === 'appendChild' || prop === 'append' || prop === 'remove' || prop === 'setAttribute') return ()=>{};
+    return ()=>{};
+  }});
+};
   $("#btn-pause").addEventListener("click", ()=>{
     state.paused = !state.paused;
     $("#btn-pause").textContent = state.paused ? "Pornește" : "Pauză";
@@ -364,22 +380,45 @@ export function renderList(state){
 }
 export function renderDetails(state){ /* removed */ }
 
-// Constructor-friendly wrapper so `new UI(state)` works
+export function renderEvents(state, events){
+  try {
+    const el = document.getElementById("event-log") || document.getElementById("journal") || document.querySelector(".events") || null;
+    if (!el) return;
+    const arr = Array.isArray(events) ? events : [events];
+    el.innerHTML = arr.slice(-50).map(ev => {
+      const t = ev.time || ev.ts || new Date().toLocaleTimeString();
+      const label = ev.label || ev.type || "EVT";
+      const id = ev.assetId || ev.id || "";
+      const txt = ev.text || ev.msg || "";
+      return `<div class="evt"><span class="t">${t}</span> — <b>${label}</b> ${id} ${txt}</div>`;
+    }).join("");
+  } catch(e){ console.warn("renderEvents failed", e); }
+}
+
+
+// Constructor-friendly UI wrapper
 export class UI {
   constructor(state){
     this.state = state;
-    try { initUI(state); } catch(e){ console.warn("initUI failed:", e); }
+    this._inited = false;
+    this._ensureInit();
   }
-  renderList(nextState){
-    const s = nextState || this.state;
-    try { return renderList(s); } catch(e){ console.warn("renderList failed:", e); }
+  _ensureInit(){
+    if (this._inited) return;
+    try {
+      if (this.state && this.state.canvas) {
+        initUI(this.state);
+        this._inited = true;
+      } else {
+        requestAnimationFrame(()=>this._ensureInit());
+      }
+    } catch(e){
+      console.warn("initUI failed (soft, will retry):", e);
+      requestAnimationFrame(()=>this._ensureInit());
+    }
   }
-  renderDetails(nextState){
-    const s = nextState || this.state;
-    try { return renderDetails(s); } catch(e){ console.warn("renderDetails failed:", e); }
-  }
+  renderList(next){ try { return renderList(next || this.state); } catch(e){ console.warn(e); } }
+  renderDetails(next){ try { return renderDetails(next || this.state); } catch(e){ console.warn(e); } }
+  renderEvents(events){ try { return renderEvents(this.state, events); } catch(e){ console.warn(e); } }
 }
-
-// Aggregate export for non-constructor usage
-export const UI_API = { initUI, renderList, renderDetails };
 export default UI;
