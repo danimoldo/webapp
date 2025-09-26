@@ -1,15 +1,18 @@
-# Webapp Demo (RTLS + CMMS) — Patched
+# Webapp (RTLS + CMMS) — Clean Bundle
 
-**Fixes**
-- Clickable asset dots (overlay accepts pointer events, pixel hit-test)
-- Toggle states for buttons (visual highlight, `aria-pressed`)
-**Features**
-- Minimap, scenarios (RO), analytics + CSV
-- Zones, alerts, proximity, trails, heatmap
-- CMMS drawer (inspections, WO, QR)
-- WebSocket client + fallback; mock server included
-**Run**
+- Single ES module entry: **only** `js/app.js` is loaded; all other JS are imported modules.
+- Fixed: no duplicate `let`/functions; CSV export string; clickable assets; visible zone drawing & edit mode.
+- Extras: minimap, scenarios (RO), analytics + CSV, Kanban + inventory, WS client + mock server, favicon.ico.
+
+## Run (static)
 ```bash
 python3 -m http.server 8080
-# or: node server/mock-ws.js
+```
+
+## Run with live mock
+```bash
+cd server
+npm i express cors ws
+node mock-ws.js
+# http://localhost:8080  (WS at ws://localhost:8081/positions)
 ```

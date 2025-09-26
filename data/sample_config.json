@@ -126,5 +126,25 @@
       "status": "green",
       "statusBase": "green"
     }
+  ],
+  "inventory": [
+    {
+      "sku": "ROATA-16",
+      "name": "Roată 16\"",
+      "stock": 4,
+      "min": 4
+    },
+    {
+      "sku": "FURCI-PR",
+      "name": "Furci prindere",
+      "stock": 2,
+      "min": 3
+    },
+    {
+      "sku": "CARTUS-EXT",
+      "name": "Cartuș stingător",
+      "stock": 5,
+      "min": 5
+    }
   ]
 }
