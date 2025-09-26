@@ -1,26 +1,27 @@
 <!doctype html>
 <html lang="ro">
 <head>
+  <link rel="icon" href="./img/favicon.png">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Evora – Demo</title>
   <link rel="preload" href="img/floor.png" as="image">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="./css/base.css">
+  <link rel="stylesheet" href="./css/layout.css">
+  <link rel="stylesheet" href="./css/components.css">
   <style>/* fallback if css fails to load */ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;} </style>
 </head>
 <body>
-  <div id="app" class="layout">
+  <div id="app" class="layout no-right">
     <aside id="left-panel"></aside>
     <main id="map-area">
       <div id="toolbar" class="toolbar toolbar-overlay"></div>
       <canvas id="map-canvas"></canvas>
+      <div id="sidebar-toggle" class="sidebar-toggle-floating" title="Arată/Ascunde panoul"></div>
       <div id="toast" class="toast" hidden></div>
     </main>
-    <aside id="right-panel"></aside>
-  </div>
-  <script type="module" src="js/main.js"></script>
+    <aside id="right-panel" style="display:none"></aside></div>
+  <script type="module" src="./js/main.js"></script>
 
   <div id="floating-legend" class="floating-legend" aria-hidden="false">
     <div class="legend-inner">
@@ -34,6 +35,30 @@
       </ul>
     </div>
   </div>
+
+
+<!-- Add Device Modal -->
+<div id="add-device-modal" class="modal" hidden>
+  <div class="modal-dialog">
+    <h3>Adaugă dispozitiv</h3>
+    <label>Tip:
+      <select id="add-type">
+        <option value="forklift">Stivuitor</option>
+        <option value="lifter">Lifter</option>
+        <option value="extinguisher">Extinctor</option>
+      </select>
+    </label>
+    <div id="ext-fields" style="display:none;margin-top:6px;">
+      <label>Status extinctor: <input type="checkbox" id="add-ext-expired"> Expirat</label>
+    </div>
+    <label>ID: <input id="add-id" placeholder="ex: F-006"></label>
+    <label>Plasare pe hartă după salvare: <input type="checkbox" id="add-place" checked></label>
+    <div class="modal-actions">
+      <button id="add-save" class="btn">Salvează</button>
+      <button id="add-cancel" class="btn btn-alt">Anulează</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

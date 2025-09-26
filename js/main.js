@@ -131,28 +131,6 @@ boot();
 
 
 // --- UI handlers (added) ---
-(function(){
-  document.addEventListener('click', (e)=>{
-    // Toggle left panel
-    if (e.target && e.target.id === 'btn-toggle-left'){
-      document.body.classList.toggle('left-collapsed');
-    }
-    // Add device
-    if (e.target && e.target.id === 'btn-add-device'){
-      const type = prompt('Tip dispozitiv (forklift/lifter):','forklift');
-      if (!type || !/^(forklift|lifter)$/i.test(type)) return;
-      const id = prompt('ID dispozitiv (ex: F-006 sau L-006):','');
-      if (!id) return;
-      const canvas = document.getElementById('map-canvas');
-      const dev = { id, type: type.toLowerCase(), x: Math.random()*(canvas?canvas.width:500), y: Math.random()*(canvas?canvas.height:300) };
-      window.__devices = window.__devices || [];
-      window.__devices.push(dev);
-      if (typeof window.drawMap === 'function') window.drawMap();
-    }
-  });
-})();
-
-
 // --- Movement driver fallback (added) ---
 (function(){
   if (window.__movementDriverAdded) return;

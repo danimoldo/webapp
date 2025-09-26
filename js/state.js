@@ -9,7 +9,9 @@ export function initState() {
     hoveredId: null,
     zones: [], // array of polygons [[{x,y},...], ...]
     floorImage: null,
-    pxPerMeter: 3, // tune to your floor plan scale
+    pxPerMeter: 3,
+    zoom: 1,
+    selectedZone: null, // tune to your floor plan scale
     lastTick: performance.now(),
   };
 }
