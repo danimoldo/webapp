@@ -152,7 +152,7 @@ function recalcAnalytics(){
     arr.map(x => `<div class="bar" style="height:${Math.round(x.n / max * 100)}%"><div class="val">${x.n}</div></div>`).join('');
 }
   const arr=Object.entries(counts).map(([id,n])=>({id,n})).sort((a,b)=>b.n-a.n);
-  const max=Math.max(1,*( [1]+arr.map(x=>x.n) )); // ensure non-zero
+  const max = Math.max(1, ...arr.map(x => x.n));
 }
 document.getElementById('btnRecalc').onclick=()=>{
   // rebuild bars similar to initial render
@@ -169,6 +169,8 @@ document.getElementById('btnCSV').onclick=()=>{
   for(const ev of state.events) if(ev.ts>=cutoff) rows.push([new Date(ev.ts).toISOString(), ev.type, ev.msg.replaceAll(',',';')]);
   const csv=rows.map(r=>r.join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='raport_evenimente.csv'; a.click();
 };
+
+recalcAnalytics();
 
 // Main loop
 let last=now();
