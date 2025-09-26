@@ -262,17 +262,16 @@ function renderInventory(){
 }
 
 // Main loop
-let last=now();
+last = now();
 let sampleAcc=0;
 function loop(){ const t=now(); const dt=(t-last)/1000; last=t; sim.tick(); if(state.heatmap.enabled){ for(const a of state.assets) addHeat(a.pos[0], a.pos[1], dt); }
   sampleAcc += dt; if(sampleAcc>=1){ sampleAcc=0; recordSample(1); }
   requestAnimationFrame(loop);
 }
-loop();
-renderAnalytics();
+/* loop call removed */renderAnalytics();
 
 let last=now();
-function loop(){ const t=now(); const dt=(t-last)/1000; last=t; sim.tick(); if(state.heatmap.enabled){ for(const a of state.assets) addHeat(a.pos[0], a.pos[1], dt); } requestAnimationFrame(loop); }
+function loop_extra(){ const t=now(); const dt=(t-last)/1000; last=t; sim.tick(); if(state.heatmap.enabled){ for(const a of state.assets) addHeat(a.pos[0], a.pos[1], dt); } requestAnimationFrame(loop); }
 loop();
 
 // Init toggles
