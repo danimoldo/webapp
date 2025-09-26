@@ -1,0 +1,10 @@
+--- components/header.html
++++ components/header.html
+@@ -6,5 +6,7 @@
+     <button id="btn-zones" class="btn">Zone interzise</button>
+     <button id="btn-clear-zones" class="btn btn-alt">Șterge zonele</button>
+     <button id="btn-save-config" class="btn btn-alt">Descarcă config</button>
++      <label class="btn btn-alt" for="upload-config">Încarcă config</label>
++    <input id="upload-config" type="file" accept="application/json" hidden>
+   </div>
+ </div>

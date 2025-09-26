@@ -1,0 +1,26 @@
+--- README.md
++++ README.md
+@@ -55,3 +55,23 @@
+ - `js/map.js`: exposes `window.drawMap`, stores `state._mapCtx`, hover/selection highlights, legend rendering.
+ - `js/sim.js`: RAF loop, pause/resume via `state.paused`, ~5 km/h motion, idle detection (>5m).
+ - `css/layout.css`: sidebar collapse rules, toolbar polish, zone hint styles, active list highlights.
++
++
++## Run on a Linux VM
++
++1. Ensure Node.js 18+ is installed (**only** for a tiny dev server):
++   ```bash
++   sudo apt-get update && sudo apt-get install -y nodejs npm
++   ```
++2. Serve the folder (pick one):
++   ```bash
++   npx http-server -p 5173 -c-1 .
++   # or
++   python3 -m http.server 5173
++   ```
++3. Open `http://localhost:5173`.
++
++## GitHub Pages
++
++- Push the contents of this folder to the `gh-pages` branch or enable Pages for `main` (root).
++- Ensure asset paths are relative (they are). No build step required.

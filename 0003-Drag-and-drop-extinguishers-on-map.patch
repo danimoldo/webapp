@@ -1,0 +1,35 @@
+--- js/map.js
++++ js/map.js
+@@ -162,7 +162,31 @@
+   });
+ 
+   // click: select hovered asset or zone
+-  canvas.addEventListener("click", (e)=>{
++  
++  // drag & drop for extinguishers
++  let draggingExt = null;
++  canvas.addEventListener("mousedown", (e)=>{
++    const p = toLogical(e);
++    // hit test extinguishers
++    for (const ext of state.extinguishers){
++      const dx = p.x - ext.x, dy = p.y - ext.y;
++      if (dx*dx + dy*dy <= 9*9){ draggingExt = ext; break; }
++    }
++  });
++  window.addEventListener("mousemove", (e)=>{
++    if (!draggingExt) return;
++    const r = canvas.getBoundingClientRect();
++    draggingExt.x = e.clientX - r.left;
++    draggingExt.y = e.clientY - r.top;
++    draw();
++  });
++  window.addEventListener("mouseup", ()=>{
++    if (draggingExt){
++      try { localStorage.setItem("extinguishers", JSON.stringify(state.extinguishers)); } catch(e){}
++      draggingExt = null;
++    }
++  });
++canvas.addEventListener("click", (e)=>{
+     const p = toLogical(e);
+     if (state.hoveredId){
+       state.selectedId = state.hoveredId;

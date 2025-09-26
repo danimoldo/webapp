@@ -1,0 +1,94 @@
+--- js/ui.js
++++ js/ui.js
+@@ -1,5 +1,9 @@
+ // js/ui.js
+ import { toast, downloadJSON } from "./utils.js";
++function persistConfig(state){
++  try { localStorage.setItem("extinguishers", JSON.stringify(state.extinguishers)); } catch(e){}
++  try { localStorage.setItem("zones", JSON.stringify(state.zones)); } catch(e){}
++}
+ export function initUI(state){
+   // List interaction
+   const listEl = document.getElementById('asset-list');
+@@ -15,9 +19,9 @@
+         if (act==='delete'){
+           if (confirm('Sigur ștergi ' + id + '?')){
+             const ai = state.assets.findIndex(x=>x.id===id);
+-            if (ai>=0) state.assets.splice(ai,1);
++            if (ai>=0) { state.assets.splice(ai,1); persistConfig(state); }
+             const ei = state.extinguishers.findIndex(x=>x.id===id);
+-            if (ei>=0) state.extinguishers.splice(ei,1);
++            if (ei>=0) { state.extinguishers.splice(ei,1); persistConfig(state); }
+             if (state.selectedId===id) state.selectedId = null;
+             if (typeof window.renderList==='function') window.renderList(state);
+             if (typeof window.drawMap==='function') window.drawMap();
+@@ -28,7 +32,7 @@
+           const handler = (ev)=>{
+             const r = state.canvas.getBoundingClientRect();
+             const x = (ev.clientX - r.left), y = (ev.clientY - r.top);
+-            if ('x' in a){ a.x = x; a.y = y; }
++            if ('x' in a){ a.x = x; a.y = y; persistConfig(state); }
+             if (typeof window.renderList==='function') window.renderList(state);
+             if (typeof window.drawMap==='function') window.drawMap();
+           };
+@@ -86,6 +90,13 @@
+     const z = parseFloat(localStorage.getItem("zoom")||"1"); if (!isNaN(z)) state.zoom = Math.max(0.5, Math.min(2, z));
+   } catch(e) {}
+ 
++  // Restore extinguishers/zones from localStorage
++  try {
++    const es = JSON.parse(localStorage.getItem("extinguishers")||"null");
++    if (Array.isArray(es)) state.extinguishers = es;
++    const zs = JSON.parse(localStorage.getItem("zones")||"null");
++    if (Array.isArray(zs)) state.zones = zs;
++  } catch(e) {}
+ 
+   // Floating left sidebar toggle icon
+   const toggleIcon = document.getElementById("left-toggle");
+@@ -133,7 +144,7 @@
+       current.push({x:e.clientX-r.left, y:e.clientY-r.top});
+     };
+     const onDbl = ()=>{
+-      if (current.length>2){ state.zones.push(current); }
++      if (current.length>2){ state.zones.push(current); persistConfig(state); }
+       current = [];
+     };
+     state.canvas.addEventListener("click", onClick);
+@@ -144,7 +155,7 @@
+     }, 20000);
+   });
+   $("#btn-clear-zones").addEventListener("click", ()=>{
+-    state.zones.length = 0;
++    state.zones.length = 0; persistConfig(state);
+     toast("Zonele au fost șterse.");
+   });
+ $("#btn-save-config").addEventListener("click", ()=>{
+@@ -154,6 +165,28 @@
+     };
+     downloadJSON("config.json", cfg);
+   });
++
++  // Load config
++  const up = document.getElementById("upload-config");
++  if (up){
++    up.addEventListener("change", async (e)=>{
++      const file = e.target.files && e.target.files[0];
++      if (!file) return;
++      try {
++        const text = await file.text();
++        const cfg = JSON.parse(text);
++        if (Array.isArray(cfg.extinguishers)) state.extinguishers = cfg.extinguishers;
++        if (Array.isArray(cfg.zones)) state.zones = cfg.zones;
++        try { localStorage.setItem("extinguishers", JSON.stringify(state.extinguishers)); } catch(e){}
++        try { localStorage.setItem("zones", JSON.stringify(state.zones)); } catch(e){}
++        toast("Config încărcat.");
++        if (typeof window.renderList==="function") window.renderList(state);
++        if (typeof window.drawMap==="function") window.drawMap();
++      } catch(err){ alert("Fișier invalid."); }
++      finally { e.target.value = ""; }
++    });
++  }
++
+ 
+   // Filters and list clicks
+   document.getElementById("left-panel").addEventListener("click", (e)=>{
