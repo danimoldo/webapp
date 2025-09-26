@@ -14,6 +14,16 @@ function drawViolation(ctx, x, y, baseR, now){
   const pulseR = baseR * (1.7 + 0.7 * t);
   const alpha = 0.9 * (1.0 - t);
 
+  // red ring on the dot itself (always visible even if pulse clipped)
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, baseR + 3, 0, Math.PI*2);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#ff3b30";
+  ctx.stroke();
+  ctx.restore();
+
+  // pulsing halo
   ctx.save();
   ctx.beginPath();
   ctx.arc(x, y, pulseR, 0, Math.PI*2);
@@ -22,6 +32,7 @@ function drawViolation(ctx, x, y, baseR, now){
   ctx.stroke();
   ctx.restore();
 
+  // small flag
   ctx.save();
   ctx.lineWidth = 2;
   ctx.strokeStyle = "rgba(255,0,0,0.95)";
@@ -54,11 +65,16 @@ function pointSegmentDistance(px, py, ax, ay, bx, by){
   return Math.hypot(px-projx, py-projy);
 }
 
+function zoneIsNoGo(poly){
+  if (poly && (poly.isNoGo === true)) return true;
+  if (poly && typeof poly.name === "string" && /interzis/i.test(poly.name)) return true;
+  return false;
+}
+
 function isInNoGo(zones, x, y, clearancePx = 0){
   for (const poly of zones){
     if (!poly || poly.length < 3) continue;
-    const isNoGo = (poly.isNoGo === true) || (typeof poly.name === "string" && /interzis/i.test(poly.name));
-    if (!isNoGo) continue;
+    if (!zoneIsNoGo(poly)) continue;
     if (pointInPoly(poly, {x, y})) return true;
     if (clearancePx > 0){
       for (let i=0; i<poly.length; i++){
@@ -69,6 +85,8 @@ function isInNoGo(zones, x, y, clearancePx = 0){
   }
   return false;
 }
+
+window.__rtls_debug = Object.assign(window.__rtls_debug || {}, { drawViolation, isInNoGo });
 // --- end: violation overlay helper ---
 
 
@@ -163,7 +181,7 @@ function isInNoGo(zones, x, y, clearancePx = 0){
       ctx.lineWidth = 3;
       ctx.strokeStyle = a.status === "idle" ? "#9097a2" : "#25c47a";
       ctx.stroke();
-      // no-go visual highlight (red flag + pulse)
+      // no-go visual highlight (red flag + pulse + red ring)
       try {
         const clearancePx = Math.round((state.pxPerMeter || 3) * 0.5); // ~0.5m buffer
         if (isInNoGo(state.zones, a.x, a.y, clearancePx)) {
