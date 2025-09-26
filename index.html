@@ -52,8 +52,10 @@
     <small>Viteză limită: 5 km/h • Zgomot de date simulat • Rulare locală</small>
   </footer>
 
-  <!-- Minimal QR code library (global) -->
+  <!-- Minimal QR code library (qrcode.js by Kazuhiko Arase, MIT) -->
   <script>
+  // Tiny QR (version trimmed)
+  /*! qrcode.js v1.0 - Kazuhiko Arase - MIT */
   (function(){function p(a){this.mode=q.MODE_8BIT_BYTE;this.data=a}
   var q={PAD0:236,PAD1:17,MODE_8BIT_BYTE:4,ErrorCorrectLevel:{L:1,M:0,Q:3,H:2}};
   function r(a,b){this.typeNumber=a;this.errorCorrectLevel=b;this.modules=null;this.moduleCount=0;this.dataList=[]}
@@ -66,6 +68,10 @@
   })();
   </script>
 
-  <script type="module" src="js/app.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/zones.js"></script>
+  <script src="js/sim.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
