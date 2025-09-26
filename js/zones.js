@@ -24,6 +24,14 @@ export class ZoneManager {
     });
     return best;
   }
+  containsPoint(p){
+    // return array of zones that contain the point p (in meters)
+    const hits=[];
+    for(const z of this.zones){
+      if (window.pointInPoly ? window.pointInPoly(p, z.polygon) : false) hits.push(z);
+    }
+    return hits;
+  }
   draw(ctx, scale){
     ctx.save(); ctx.lineWidth=2; ctx.font='12px sans-serif';
     for(const z of this.zones){

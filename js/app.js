@@ -89,8 +89,7 @@ document.getElementById('scnMeet').onclick=()=>{ const f1=state.assets.find(x=>x
 document.getElementById('scnExpired').onclick=()=>{ const e=state.assets.find(x=>x.type==='extinguisher'); if(e){ e.next_check='2025-01-01'; state.emitEvent('ALERT',{asset:e.id, note:'Stingător expirat'}); } };
 
 // Canvas interactions
-
-let drawing=false;
+drawing = false;
 let draggingExt=null;
 let editingVertex=null;
 
