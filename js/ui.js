@@ -1,5 +1,19 @@
 // js/ui.js
-import { toast, downloadJSON } from "./utils.js";
+
+// local fallback to avoid named export mismatch
+function downloadJSON(filename, obj){
+  try {
+    const data = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(data);
+    const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 500);
+  } catch (e) {
+    console.error("downloadJSON failed:", e);
+    alert("Nu pot salva JSON-ul. Verifică permisiunile browserului.");
+  }
+}
+import { toast } from "./utils.js";
 export function initUI(state){
   // List interaction
   const listEl = document.getElementById('asset-list');
@@ -133,15 +147,7 @@ export function initUI(state){
       current.push({x:e.clientX-r.left, y:e.clientY-r.top});
     };
     const onDbl = ()=>{
-      if (current.length>2){
-        // Ask for a name and mark flags
-        const nm = prompt("Nume zonă (opțional):", "");
-        if (nm != null && nm.trim()) { current.name = nm.trim(); }
-        // Auto-flag as no-go if name contains "interzis/ă"
-        const lower = (current.name || "").toLowerCase();
-        if (/interzis/.test(lower)) current.isNoGo = true;
-        state.zones.push(current);
-      }
+      if (current.length>2){ state.zones.push(current); }
       current = [];
     };
     state.canvas.addEventListener("click", onClick);
