@@ -6,6 +6,15 @@ import { UI } from './ui.js';
 import { RTLSClient } from './ws-client.js';
 
 const state = {
+  stats: { samples: [], windowSec: 1800 }, // 30 min
+  inventory: [
+    { sku:'ROATA-16', name:'Roată 16"', stock:4, min:4 },
+    { sku:'FURCI-PR', name:'Furci prindere', stock:2, min:3 },
+    { sku:'CARTUS-EXT', name:'Cartuș stingător', stock:5, min:5 }
+  ],
+  work_orders: [
+    { id:'WO-1001', asset_id:'FORK-001', title:'Schimbă roata stânga', status:'Nouă' }
+  ],
   site: { width_m: 250, height_m: 150, height_m_ceiling: 8 },
   m_per_px: 0.2,
   mps: 1.389,
@@ -50,7 +59,14 @@ const ui=new UI(state);
 
 // Helpers for toggles + mouse
 function setToggle(btn, on){ if(!btn) return; btn.classList.toggle('is-active', !!on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
-function getMouse(ev, canvas){ const rect=canvas.getBoundingClientRect(); return [ev.clientX-rect.left, ev.clientY-rect.top]; }
+function getMouse(ev, canvas){
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width / rect.width;
+  const sy = canvas.height / rect.height;
+  const x = (ev.clientX - rect.left) * sx;
+  const y = (ev.clientY - rect.top) * sy;
+  return [x,y];
+}
 
 // Controls
 document.getElementById('btnPlay').onclick=()=>{ sim.setRunning(true); setToggle(document.getElementById('btnPlay'), true); setToggle(document.getElementById('btnPause'), false); };
@@ -58,6 +74,8 @@ document.getElementById('btnPause').onclick=()=>{ sim.setRunning(false); setTogg
 document.getElementById('btnReset').onclick=()=>resetPositions();
 document.getElementById('btnDrawZone').onclick=()=>{ startZoneDrawing(); setToggle(document.getElementById('btnDrawZone'), true); };
 document.getElementById('btnClearZones').onclick=()=>{ state.zones.clear(); setToggle(document.getElementById('btnDrawZone'), false); drawAll(); };
+document.getElementById('btnEditZones').onclick=(e)=>{ state.zones.editMode = !state.zones.editMode; setToggle(e.currentTarget, state.zones.editMode); };
+document.getElementById('btnWOBoard').onclick=(e)=>{ const wrap=document.getElementById('kanban'); const on=wrap.style.display==='none'; wrap.style.display= on?'grid':'none'; setToggle(e.currentTarget, on); renderKanban(); renderInventory(); };
 document.getElementById('btnHeatmap').onclick=(e)=>{ state.heatmap.enabled=!state.heatmap.enabled; setToggle(e.currentTarget, state.heatmap.enabled); };
 document.getElementById('btnCalibrate').onclick=()=>{ const w=parseFloat(document.getElementById('siteW').value||'250'); const h=parseFloat(document.getElementById('siteH').value||'150'); state.site.width_m=w; state.site.height_m=h; state.m_per_px=Math.max(w/canvasFloor.width,h/canvasFloor.height); };
 document.getElementById('btnExport').onclick=()=>exportConfig();
@@ -71,9 +89,41 @@ document.getElementById('scnMeet').onclick=()=>{ const f1=state.assets.find(x=>x
 document.getElementById('scnExpired').onclick=()=>{ const e=state.assets.find(x=>x.type==='extinguisher'); if(e){ e.next_check='2025-01-01'; state.emitEvent('ALERT',{asset:e.id, note:'Stingător expirat'}); } };
 
 // Canvas interactions
+
+let drawing=false;
+let draggingExt=null;
+let editingVertex=null;
+
+canvasOverlay.addEventListener('mousemove',(ev)=>{
+  const m = toMeters(ev);
+  if (drawing) state.zones.setHover(m);
+  if (draggingExt){
+    // snap to 1m grid
+    draggingExt.pos = [Math.round(m[0]), Math.round(m[1])];
+  }
+  if (editingVertex){
+    const z = state.zones.zones[editingVertex.zoneIndex];
+    z.polygon[editingVertex.vertIndex] = [Math.round(m[0]), Math.round(m[1])];
+  }
+});
+
+canvasOverlay.addEventListener('mousedown',(ev)=>{
+  const m = toMeters(ev);
+  if (state.zones.editMode){
+    const v = state.zones.findVertex(m, 3);
+    if (v){ editingVertex = v; return; }
+  }
+  if (drawing){ state.zones.addPoint(m); return; }
+  // pick extinguisher to drag
+  const ext = state.assets.find(a=>a.type==='extinguisher' && Math.hypot(a.pos[0]-m[0], a.pos[1]-m[1])<=3);
+  if (ext){ draggingExt = ext; return; }
+});
+
+window.addEventListener('mouseup',()=>{ draggingExt=null; editingVertex=null; });
+
 let drawing=false;
 canvasOverlay.addEventListener('mousedown',(ev)=>{ const p=toMeters(ev); if(drawing){ state.zones.addPoint(p); drawAll(); }});
-canvasOverlay.addEventListener('dblclick',(ev)=>{ if(drawing){ drawing=false; state.zones.finish('Zonă interzisă','no_go'); setToggle(document.getElementById('btnDrawZone'), false); drawAll(); }});
+canvasOverlay.addEventListener('dblclick',(ev)=>{ if(drawing){ drawing=false; state.zones.finish('Zonă interzisă','no_go'); setToggle(document.getElementById('btnDrawZone'), false); drawAll(); } else if (state.zones.editMode) { const name=prompt('Nume zonă:'); if(name){ /* rename first hit zone */ const m=toMeters(ev); const hits=state.zones.containsPoint?state.zones.containsPoint(m):[]; if(hits&&hits.length){ hits[0].name=name; } } } });
 canvasOverlay.addEventListener('click',(ev)=>{ if(drawing) return; const [px,py]=getMouse(ev, canvasOverlay);
   const hit=state.assets.find(a=>{ const ax=a.pos[0]/state.m_per_px, ay=a.pos[1]/state.m_per_px; return Math.hypot(ax-px, ay-py)<=10; });
   ui.renderDrawer(hit||null);
@@ -131,45 +181,97 @@ function drawMinimap(){
 drawMinimap();
 
 // Analytics
-function recalcAnalytics(){
-  // Utilization: % time moving vs idle (simple heuristic: gray=0, else=100)
-  const util = state.assets.map(a => ({ id: a.id, pct: Math.round(a.status === 'gray' ? 0 : 100) }));
+function recordSample(dt){
+  const ts = Date.now();
+  const rec = { ts, moving: {} };
+  for(const a of state.assets){
+    // moving if recent displacement (status isn't reliable)
+    const speed = Math.hypot(a.vel[0], a.vel[1]) * state.m_per_px; // px/s approx -> ok for heuristic
+    rec.moving[a.id] = speed > 0.05 ? 1 : 0;
+  }
+  state.stats.samples.push(rec);
+  const cutoff = ts - state.stats.windowSec*1000;
+  while(state.stats.samples.length && state.stats.samples[0].ts < cutoff) state.stats.samples.shift();
+}
+function calcUtilization(){
+  const byAsset = {};
+  for(const s of state.stats.samples){
+    for(const [id,val] of Object.entries(s.moving)){
+      const b = byAsset[id] || (byAsset[id]={m:0,n:0});
+      b.m += val; b.n += 1;
+    }
+  }
+  return Object.entries(byAsset).map(([id,b])=>({id, pct: b.n? Math.round(b.m/b.n*100):0}));
+}
+function renderAnalytics(){
+  const util = calcUtilization();
   document.getElementById('chartUtil').innerHTML =
     util.map(u => `<div class="bar" style="height:${u.pct}%"><div class="val">${u.pct}%</div></div>`).join('');
-
-  // Events per asset (last 30 min)
+  // Events per asset
   const counts = {};
-  const cutoff = Date.now() - 30 * 60 * 1000;
-  for (const ev of state.events) {
-    if (ev.ts < cutoff) continue;
-    const m = ev.msg.match(/FORK-[0-9]+|LIFT-[0-9]+|EXT-[0-9]+/);
-    const id = m ? m[0] : 'N/A';
-    counts[id] = (counts[id] || 0) + 1;
-  }
-  const arr = Object.entries(counts).map(([id, n]) => ({ id, n })).sort((a, b) => b.n - a.n);
-  const max = Math.max(1, ...arr.map(x => x.n));
+  const cutoff = Date.now() - 30*60*1000;
+  for(const ev of state.events){ if(ev.ts<cutoff) continue; const m = ev.msg.match(/FORK-[0-9]+|LIFT-[0-9]+|EXT-[0-9]+/); const id = m?m[0]:'N/A'; counts[id]=(counts[id]||0)+1; }
+  const arr = Object.entries(counts).map(([id,n])=>({id,n})).sort((a,b)=>b.n-a.n);
+  const max = Math.max(1, ...arr.map(x=>x.n));
   document.getElementById('chartEvents').innerHTML =
-    arr.map(x => `<div class="bar" style="height:${Math.round(x.n / max * 100)}%"><div class="val">${x.n}</div></div>`).join('');
+    arr.map(x => `<div class="bar" style="height:${Math.round(x.n/max*100)}%"><div class="val">${x.n}</div></div>`).join('');
 }
-document.getElementById('btnRecalc').onclick=()=>{
-  // rebuild bars similar to initial render
-  const util=state.assets.map(a=>({id:a.id, pct: Math.round(a.status==='gray'?0:100)}));
-  document.getElementById('chartUtil').innerHTML = util.map(u=>`<div class="bar" style="height:${u.pct}%"><div class="val">${u.pct}%</div></div>`).join('');
-  const counts={}; const cutoff=Date.now()-30*60*1000;
-  for(const ev of state.events){ if(ev.ts<cutoff) continue; const id=(ev.msg.match(/FORK-[0-9]+|LIFT-[0-9]+|EXT-[0-9]+/)||[])[0]||'N/A'; counts[id]=(counts[id]||0)+1; }
-  const arr=Object.entries(counts).map(([id,n])=>({id,n})).sort((a,b)=>b.n-a.n);
-  const max=Math.max(1, ...arr.map(x=>x.n));
-  document.getElementById('chartEvents').innerHTML = arr.map(x=>`<div class="bar" style="height:${Math.round(x.n/max*100)}%"><div class="val">${x.n}</div></div>`).join('');
-};
+document.getElementById('btnRecalc').onclick=renderAnalytics;
 document.getElementById('btnCSV').onclick=()=>{
   const cutoff=Date.now()-30*60*1000; const rows=[['timestamp','type','message']];
   for(const ev of state.events) if(ev.ts>=cutoff) rows.push([new Date(ev.ts).toISOString(), ev.type, ev.msg.replaceAll(',',';')]);
-  const csv=rows.map(r=>r.join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='raport_evenimente.csv'; a.click();
+  const csv=rows.map(r=>r.join(',')).join('
+'); const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='raport_evenimente.csv'; a.click();
 };
 
-recalcAnalytics();
+// Kanban + Inventory rendering
+function renderKanban(){
+  const buckets = { 'Nouă':[], 'În lucru':[], 'Finalizată':[] };
+  for(const a of state.assets){
+    for(const w of (a.wo||[])){
+      buckets[w.status] = buckets[w.status] || [];
+      buckets[w.status].push({ ...w, asset_id:a.id });
+    }
+  }
+  const fill = (id, list) => {
+    const el = document.getElementById(id);
+    el.innerHTML = (list||[]).map(w=>`
+      <div class="card">
+        <b>${w.id}</b> — ${w.title}<br/><small>${w.asset_id}</small>
+        <div class="actions">
+          <button data-id="${w.id}" data-to="În lucru">În lucru</button>
+          <button data-id="${w.id}" data-to="Finalizată">Finalizează</button>
+        </div>
+      </div>`).join('');
+    // bind actions
+    el.querySelectorAll('button').forEach(btn=>{
+      btn.onclick = () => {
+        const id = btn.getAttribute('data-id'); const to = btn.getAttribute('data-to');
+        for(const a of state.assets){ const w=(a.wo||[]).find(x=>x.id===id); if(w){ w.status = to; break; } }
+        renderKanban(); state.refreshKPIs();
+      };
+    });
+  };
+  fill('cardsNoua', buckets['Nouă']);
+  fill('cardsInLucru', buckets['În lucru']);
+  fill('cardsFinalizata', buckets['Finalizată']);
+}
+function renderInventory(){
+  const el = document.getElementById('inventory');
+  el.innerHTML = '<h4>Inventar piese (lite)</h4><table><tr><th>SKU</th><th>Denumire</th><th>Stoc</th></tr>' +
+    state.inventory.map(i=>`<tr><td>${i.sku}</td><td>${i.name}</td><td class="${i.stock<=i.min?'low':''}">${i.stock}</td></tr>`).join('') + '</table>';
+}
 
 // Main loop
+let last=now();
+let sampleAcc=0;
+function loop(){ const t=now(); const dt=(t-last)/1000; last=t; sim.tick(); if(state.heatmap.enabled){ for(const a of state.assets) addHeat(a.pos[0], a.pos[1], dt); }
+  sampleAcc += dt; if(sampleAcc>=1){ sampleAcc=0; recordSample(1); }
+  requestAnimationFrame(loop);
+}
+loop();
+renderAnalytics();
+
 let last=now();
 function loop(){ const t=now(); const dt=(t-last)/1000; last=t; sim.tick(); if(state.heatmap.enabled){ for(const a of state.assets) addHeat(a.pos[0], a.pos[1], dt); } requestAnimationFrame(loop); }
 loop();

@@ -69,3 +69,18 @@ h1 { margin:0 0 8px; font-size: 18px; font-weight: 700; }
 .legend .swatch { width:10px; height:10px; display:inline-block; background:#1f275c; border:1px solid #334; margin-right:4px; }
 
 footer { padding:8px 16px; color:#9aa; border-top:1px solid #2a2f55; }
+
+
+/* Zone edit handles */
+.handle { width:8px; height:8px; background:#ffb3b3; border:1px solid #f66; border-radius:3px; position:absolute; }
+
+/* Kanban + Inventory */
+.kanban { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-top:10px; }
+.col { background:#0f1330; border:1px solid #2a2f55; border-radius:12px; padding:8px; }
+.col h4 { margin:0 0 6px; font-size:13px; color:#cde; }
+.card { background:#131a3a; border:1px solid #2a2f55; border-radius:10px; padding:6px 8px; margin-bottom:6px; font-size:12px; }
+.card .actions { display:flex; gap:6px; margin-top:6px; }
+.inv { margin-top:10px; }
+.inv table { width:100%; border-collapse: collapse; font-size:12px; }
+.inv th, .inv td { border-bottom:1px dashed #2a2f55; padding:4px 6px; text-align:left; }
+.inv .low { color:#ffb; }

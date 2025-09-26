@@ -17,11 +17,14 @@ export class Simulator {
         const inside=this.state.pointInZone([nx,ny], z);
         if(inside){ currentInside.add(z.id); if(!prevInside.has(z.id)) this.state.emitEvent('ENTER_ZONE',{asset:a.id,zone:z.name}); }
         else { if(prevInside.has(z.id)) this.state.emitEvent('EXIT_ZONE',{asset:a.id,zone:z.name}); }
-        if(inside && z.type==='no_go'){ a.vel[0]*=-1; a.vel[1]*=-1; }
+        if(inside && z.type==='no_go'){ const tmp=a.vel[0]; a.vel[0]=-a.vel[1]; a.vel[1]=tmp; }
       }
       a.insideZones=Array.from(currentInside);
 
       for(const b of this.state.assets) if(b!==a){
+        // separation steering
+        const dx=b.pos[0]-a.pos[0], dy=b.pos[1]-a.pos[1]; const d=Math.hypot(dx,dy);
+        if(d>0 && d < ((a.bubble_m||3)+(b.bubble_m||3))*0.8){ a.vel[0] -= dx*0.05; a.vel[1] -= dy*0.05; }
         const d=dist(a.pos,b.pos); const threshold=(a.bubble_m||3)+(b.bubble_m||3);
         const k=a.id+'|'+b.id; a._meet=a._meet||{}; const prev=!!a._meet[k]; const nowMeet=d<=threshold;
         if(nowMeet && !prev){ this.state.emitEvent('MEET',{a:a.id,b:b.id}); a._meet[k]=true; }

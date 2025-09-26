@@ -22,7 +22,7 @@
     <button id="btnPlay" aria-pressed="true">Redare</button>
     <button id="btnPause" aria-pressed="false">Pauză</button>
     <button id="btnReset">Reset poziții</button>
-    <button id="btnDrawZone" aria-pressed="false">Zone interzise: Desenează</button>
+    <button id="btnDrawZone" aria-pressed="false">Zone interzise: Desenează</button><button id="btnEditZones" aria-pressed="false">Editează zone</button><button id="btnWOBoard" aria-pressed="false">Panou WO</button>
     <button id="btnClearZones">Șterge zone</button>
     <button id="btnHeatmap" aria-pressed="false">Căldură mișcare</button>
     <button id="btnExport">Export Config</button>
@@ -50,6 +50,12 @@
       </div>
       <div id="eventsPane"></div>
       <div class="analytics" id="analytics">
+<div class="kanban" id="kanban" style="display:none;">
+  <div class="col" id="colNoua"><h4>Nouă</h4><div class="cards" id="cardsNoua"></div></div>
+  <div class="col" id="colInLucru"><h4>În lucru</h4><div class="cards" id="cardsInLucru"></div></div>
+  <div class="col" id="colFinalizata"><h4>Finalizată</h4><div class="cards" id="cardsFinalizata"></div></div>
+</div>
+<div class="inv" id="inventory"></div>
         <div class="events-head">
           <strong>Analitice (ultimele 30 min)</strong>
           <div>

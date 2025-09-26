@@ -7,7 +7,7 @@ export class RTLSClient {
       this.ws=new WebSocket(url);
       this.ws.onopen=()=>{ this.mode='ws'; console.log('[WS] Connected'); };
       this.ws.onmessage=(ev)=>{ const payload=JSON.parse(ev.data);
-        for(const upd of payload.assets){ const a=this.state.assets.find(x=>x.id===upd.id); if(a){ if(upd.pos) a.pos=upd.pos; if(upd.vel) a.vel=upd.vel; } }
+        for(const upd of payload.assets){ const a=this.state.assets.find(x=>x.id===upd.id); if(a){ if(upd.pos) a.pos=upd.pos; if(upd.vel) a.vel=upd.vel; if(upd.battery!=null) a.battery=upd.battery; if(upd.rssi!=null) a.rssi=upd.rssi; if(upd.anchorId) a.anchorId=upd.anchorId; } }
       };
       this.ws.onerror=()=>this._fallback(); this.ws.onclose=()=>this._fallback();
       setTimeout(()=>{ if(this.mode!=='ws') this._fallback(); },1500);
