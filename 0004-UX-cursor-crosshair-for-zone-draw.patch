@@ -1,0 +1,9 @@
+--- css/components.css
++++ css/components.css
+@@ -29,3 +29,6 @@
+ }
+ .list-item .action:hover { background:#182237; }
+ .list-item.selected .action { border-color: rgba(74,144,255,0.45); }
++
++/* UX tweaks */
++.drawing-zones { cursor: crosshair; }
