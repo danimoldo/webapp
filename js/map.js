@@ -7,6 +7,72 @@ export async function initMap(state){
   state.canvas = canvas;
   state._mapCtx = ctx;
 
+
+// --- begin: violation overlay helper (canvas) ---
+function drawViolation(ctx, x, y, baseR, now){
+  const t = (now % 1200) / 1200;
+  const pulseR = baseR * (1.7 + 0.7 * t);
+  const alpha = 0.9 * (1.0 - t);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, pulseR, 0, Math.PI*2);
+  ctx.strokeStyle = `rgba(255,0,0,${alpha.toFixed(3)})`;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255,0,0,0.95)";
+  ctx.fillStyle = "rgba(255,0,0,0.95)";
+  const poleX = x + baseR + 2;
+  const poleTopY = y - baseR - 6;
+  const poleBotY = y - baseR - 1;
+  ctx.beginPath();
+  ctx.moveTo(poleX, poleBotY);
+  ctx.lineTo(poleX, poleTopY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(poleX, poleTopY);
+  ctx.lineTo(poleX + 7, poleTopY + 2);
+  ctx.lineTo(poleX, poleTopY + 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function pointSegmentDistance(px, py, ax, ay, bx, by){
+  const vx = bx - ax, vy = by - ay;
+  const wx = px - ax, wy = py - ay;
+  const c1 = vx*wx + vy*wy;
+  if (c1 <= 0) return Math.hypot(px-ax, py-ay);
+  const c2 = vx*vx + vy*vy;
+  if (c2 <= c1) return Math.hypot(px-bx, py-by);
+  const t = c1 / c2;
+  const projx = ax + t*vx, projy = ay + t*vy;
+  return Math.hypot(px-projx, py-projy);
+}
+
+function isInNoGo(zones, x, y, clearancePx = 0){
+  for (const poly of zones){
+    if (!poly || poly.length < 3) continue;
+    const isNoGo = (poly.isNoGo === true) || (typeof poly.name === "string" && /interzis/i.test(poly.name));
+    if (!isNoGo) continue;
+    if (pointInPoly(poly, {x, y})) return true;
+    if (clearancePx > 0){
+      for (let i=0; i<poly.length; i++){
+        const a = poly[i], b = poly[(i+1)%poly.length];
+        if (pointSegmentDistance(x,y,a.x,a.y,b.x,b.y) < clearancePx) return true;
+      }
+    }
+  }
+  return false;
+}
+// --- end: violation overlay helper ---
+
+
+
   // offscreen layer for floor + zones
   const layer = document.createElement("canvas");
   const lctx = layer.getContext("2d");
@@ -97,6 +163,16 @@ export async function initMap(state){
       ctx.lineWidth = 3;
       ctx.strokeStyle = a.status === "idle" ? "#9097a2" : "#25c47a";
       ctx.stroke();
+      // no-go visual highlight (red flag + pulse)
+      try {
+        const clearancePx = Math.round((state.pxPerMeter || 3) * 0.5); // ~0.5m buffer
+        if (isInNoGo(state.zones, a.x, a.y, clearancePx)) {
+          drawViolation(ctx, a.x, a.y, 7, performance.now());
+        }
+      } catch(e) {
+        console.warn("violation overlay failed", e);
+      }
+
 
       if (a.id === state.selectedId || a.id === state.hoveredId){
         ctx.beginPath();
