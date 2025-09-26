@@ -1,37 +1,29 @@
-// js/ui.js
-// Safe fallbacks (cache-safe)
-const toast = (Utils && typeof Utils.toast === "function")
-  ? Utils.toast
-  : function(msg){
-      try {
-        const el = document.getElementById("toast");
-        if (!el) { console.warn("toast:", msg); return; }
-        el.textContent = msg; el.hidden = false;
-        clearTimeout(el._t); el._t = setTimeout(()=> el.hidden = true, 1600);
-      } catch(e){ console.warn("toast fallback failed:", msg, e); }
-    };
 
-const downloadJSON = (Utils && typeof Utils.downloadJSON === "function")
-  ? Utils.downloadJSON
-  : function(filename, obj){
-      try {
-        const data = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json"});
-        const url = URL.createObjectURL(data);
-        const a = Object.assign(document.createElement("a"), { href: url, download: filename });
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(()=>URL.revokeObjectURL(url), 500);
-      } catch (e) {
-        console.error("downloadJSON failed:", e);
-        alert("Nu pot salva JSON-ul. Verifică permisiunile browserului.");
-      }
-    };
-import * as Utils from "./utils.js";
+// --- safe DOM shims (injected) ---
+(function(){
+  if (window.__domShim) return; window.__domShim = true;
+  const nullEl = new Proxy({}, {
+    get: (t, prop)=>{
+      if (prop === 'addEventListener') return ()=>{};
+      if (prop === 'removeEventListener') return ()=>{};
+      if (prop === 'appendChild') return ()=>{};
+      if (prop === 'remove') return ()=>{};
+      if (prop === 'getBoundingClientRect') return ()=>({left:0,top:0,width:0,height:0});
+      if (prop === 'classList') return { add(){}, remove(){}, contains(){ return false; } };
+      if (prop === 'style') return {};
+      if (prop === 'dataset') return {};
+      return undefined;
+    }
+  });
+  const origQS = document.querySelector.bind(document);
+  const origGI = document.getElementById.bind(document);
+  document.querySelector = (sel)=> origQS(sel) || nullEl;
+  document.getElementById = (id)=> origGI(id) || nullEl;
+})();
+// --- end shims ---
+// js/ui.js
+import { toast, downloadJSON } from "./utils.js";
 export function initUI(state){
-  // Defer until canvas is ready
-  if (!state || !state.canvas) {
-    requestAnimationFrame(()=>{ try { initUI(state); } catch(e) { /* retry */ } });
-    return;
-  }
   // List interaction
   const listEl = document.getElementById('asset-list');
   if (listEl && !listEl.dataset.bound){
@@ -140,18 +132,7 @@ export function initUI(state){
   
   // Zones UX: cursor, hint, undo (Esc cancels polygon, Z undoes last point)
 
-  const $ = (s)=>{
-  const el = document.querySelector(s);
-  if (el) return el;
-  // safe proxy to avoid NPEs when sections are not mounted yet
-  return new Proxy({}, { get: (t, prop) => {
-    if (prop === 'addEventListener' || prop === 'removeEventListener') return ()=>{};
-    if (prop === 'classList') return new Proxy({}, { get: ()=> ()=>{} });
-    if (prop === 'style') return {};
-    if (prop === 'appendChild' || prop === 'append' || prop === 'remove' || prop === 'setAttribute') return ()=>{};
-    return ()=>{};
-  }});
-};
+  const $ = (s)=>document.querySelector(s);
   $("#btn-pause").addEventListener("click", ()=>{
     state.paused = !state.paused;
     $("#btn-pause").textContent = state.paused ? "Pornește" : "Pauză";
@@ -380,45 +361,33 @@ export function renderList(state){
 }
 export function renderDetails(state){ /* removed */ }
 
+// Render events to journal/log panels if present (safe no-op if missing)
 export function renderEvents(state, events){
-  try {
-    const el = document.getElementById("event-log") || document.getElementById("journal") || document.querySelector(".events") || null;
+  try{
+    const el = document.getElementById('event-log') || document.getElementById('journal') || document.querySelector('.events');
     if (!el) return;
-    const arr = Array.isArray(events) ? events : [events];
-    el.innerHTML = arr.slice(-50).map(ev => {
-      const t = ev.time || ev.ts || new Date().toLocaleTimeString();
-      const label = ev.label || ev.type || "EVT";
-      const id = ev.assetId || ev.id || "";
-      const txt = ev.text || ev.msg || "";
-      return `<div class="evt"><span class="t">${t}</span> — <b>${label}</b> ${id} ${txt}</div>`;
-    }).join("");
-  } catch(e){ console.warn("renderEvents failed", e); }
+    const last = events.slice(-50).map(ev => `${ev.time} — ${ev.type} — ${ev.text || ''}`).join('\n');
+    if ('textContent' in el) el.textContent = last; else if ('innerText' in el) el.innerText = last;
+  }catch(e){ console.warn('renderEvents noop', e); }
 }
 
 
-// Constructor-friendly UI wrapper
+// Constructor-friendly wrapper so `new UI(state)` works
 export class UI {
   constructor(state){
-    this.state = state;
-    this._inited = false;
-    this._ensureInit();
-  }
-  _ensureInit(){
-    if (this._inited) return;
-    try {
-      if (this.state && this.state.canvas) {
-        initUI(this.state);
-        this._inited = true;
-      } else {
-        requestAnimationFrame(()=>this._ensureInit());
+    this.state = state; this._tries = 0;
+    const tryInit = ()=>{
+      try { initUI(state); }
+      catch(e){
+        if (this._tries++ < 60) { requestAnimationFrame(tryInit); return; }
+        console.warn('initUI failed (giving up):', e);
       }
-    } catch(e){
-      console.warn("initUI failed (soft, will retry):", e);
-      requestAnimationFrame(()=>this._ensureInit());
-    }
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryInit, {once:true});
+    else requestAnimationFrame(tryInit);
   }
-  renderList(next){ try { return renderList(next || this.state); } catch(e){ console.warn(e); } }
-  renderDetails(next){ try { return renderDetails(next || this.state); } catch(e){ console.warn(e); } }
-  renderEvents(events){ try { return renderEvents(this.state, events); } catch(e){ console.warn(e); } }
+  renderList(s){ try { return renderList(s||this.state); } catch(e){ console.warn('renderList failed', e);} }
+  renderDetails(s){ try { return renderDetails(s||this.state); } catch(e){ console.warn('renderDetails failed', e);} }
+  renderEvents(evts){ try { return renderEvents(this.state, evts); } catch(e){ console.warn('renderEvents failed', e);} }
 }
 export default UI;
