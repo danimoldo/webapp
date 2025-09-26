@@ -1,19 +1,32 @@
 // js/ui.js
 
-// local fallback to avoid named export mismatch
-function downloadJSON(filename, obj){
-  try {
-    const data = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json"});
-    const url = URL.createObjectURL(data);
-    const a = Object.assign(document.createElement("a"), { href: url, download: filename });
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 500);
-  } catch (e) {
-    console.error("downloadJSON failed:", e);
-    alert("Nu pot salva JSON-ul. Verifică permisiunile browserului.");
-  }
-}
-import { toast } from "./utils.js";
+// Safe fallbacks if utils.js lacks exports (cache/mismatch safe)
+const toast = (Utils && typeof Utils.toast === "function")
+  ? Utils.toast
+  : function(msg){
+      try {
+        const el = document.getElementById("toast");
+        if (!el) { console.warn("toast:", msg); return; }
+        el.textContent = msg; el.hidden = false;
+        clearTimeout(el._t); el._t = setTimeout(()=> el.hidden = true, 1600);
+      } catch(e){ console.warn("toast fallback failed:", msg, e); }
+    };
+
+const downloadJSON = (typeof Utils?.downloadJSON === "function")
+  ? Utils.downloadJSON
+  : function(filename, obj){
+      try {
+        const data = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json"});
+        const url = URL.createObjectURL(data);
+        const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url), 500);
+      } catch (e) {
+        console.error("downloadJSON failed:", e);
+        alert("Nu pot salva JSON-ul. Verifică permisiunile browserului.");
+      }
+    };
+import * as Utils from "./utils.js";
 export function initUI(state){
   // List interaction
   const listEl = document.getElementById('asset-list');
