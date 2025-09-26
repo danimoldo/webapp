@@ -132,10 +132,25 @@ drawMinimap();
 
 // Analytics
 function recalcAnalytics(){
-  const util=state.assets.map(a=>({id:a.id, pct: Math.round(a.status==='gray'?0:100)}));
-  document.getElementById('chartUtil').innerHTML = util.map(u=>`<div class="bar" style="height:${u.pct}%"><div class="val">${u.pct}%</div></div>`).join('');
-  const counts={}; const cutoff=Date.now()-30*60*1000;
-  for(const ev of state.events){ if(ev.ts<cutoff) continue; const id=(ev.msg.match(/FORK-[0-9]+|LIFT-[0-9]+|EXT-[0-9]+/)||[])[0]||'N/A'; counts[id]=(counts[id]||0)+1; }
+  // Utilization: % time moving vs idle (very simple: gray=0, else=100)
+  const util = state.assets.map(a => ({ id: a.id, pct: Math.round(a.status === 'gray' ? 0 : 100) }));
+  document.getElementById('chartUtil').innerHTML =
+    util.map(u => `<div class="bar" style="height:${u.pct}%"><div class="val">${u.pct}%</div></div>`).join('');
+
+  // Events per asset (last 30 min)
+  const counts = {};
+  const cutoff = Date.now() - 30 * 60 * 1000;
+  for (const ev of state.events) {
+    if (ev.ts < cutoff) continue;
+    const m = ev.msg.match(/FORK-[0-9]+|LIFT-[0-9]+|EXT-[0-9]+/);
+    const id = m ? m[0] : 'N/A';
+    counts[id] = (counts[id] || 0) + 1;
+  }
+  const arr = Object.entries(counts).map(([id, n]) => ({ id, n })).sort((a, b) => b.n - a.n);
+  const max = Math.max(1, ...arr.map(x => x.n));
+  document.getElementById('chartEvents').innerHTML =
+    arr.map(x => `<div class="bar" style="height:${Math.round(x.n / max * 100)}%"><div class="val">${x.n}</div></div>`).join('');
+}
   const arr=Object.entries(counts).map(([id,n])=>({id,n})).sort((a,b)=>b.n-a.n);
   const max=Math.max(1,*( [1]+arr.map(x=>x.n) )); // ensure non-zero
 }
