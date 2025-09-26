@@ -220,7 +220,7 @@ document.getElementById('btnCSV').onclick=()=>{
   const cutoff=Date.now()-30*60*1000; const rows=[['timestamp','type','message']];
   for(const ev of state.events) if(ev.ts>=cutoff) rows.push([new Date(ev.ts).toISOString(), ev.type, ev.msg.replaceAll(',',';')]);
   const csv=rows.map(r=>r.join(',')).join('\n'); /* fixed */
-'); const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='raport_evenimente.csv'; a.click();
+const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='raport_evenimente.csv'; a.click();
 };
 
 // Kanban + Inventory rendering
