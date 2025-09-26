@@ -132,7 +132,7 @@ drawMinimap();
 
 // Analytics
 function recalcAnalytics(){
-  // Utilization: % time moving vs idle (very simple: gray=0, else=100)
+  // Utilization: % time moving vs idle (simple heuristic: gray=0, else=100)
   const util = state.assets.map(a => ({ id: a.id, pct: Math.round(a.status === 'gray' ? 0 : 100) }));
   document.getElementById('chartUtil').innerHTML =
     util.map(u => `<div class="bar" style="height:${u.pct}%"><div class="val">${u.pct}%</div></div>`).join('');
@@ -150,9 +150,6 @@ function recalcAnalytics(){
   const max = Math.max(1, ...arr.map(x => x.n));
   document.getElementById('chartEvents').innerHTML =
     arr.map(x => `<div class="bar" style="height:${Math.round(x.n / max * 100)}%"><div class="val">${x.n}</div></div>`).join('');
-}
-  const arr=Object.entries(counts).map(([id,n])=>({id,n})).sort((a,b)=>b.n-a.n);
-  const max = Math.max(1, ...arr.map(x => x.n));
 }
 document.getElementById('btnRecalc').onclick=()=>{
   // rebuild bars similar to initial render
