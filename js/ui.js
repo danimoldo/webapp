@@ -1,6 +1,5 @@
 // js/ui.js
-
-// Safe fallbacks if utils.js lacks exports (cache/mismatch safe)
+// Safe fallbacks in case utils.js isn't in sync (cache-safe)
 const toast = (Utils && typeof Utils.toast === "function")
   ? Utils.toast
   : function(msg){
@@ -12,7 +11,7 @@ const toast = (Utils && typeof Utils.toast === "function")
       } catch(e){ console.warn("toast fallback failed:", msg, e); }
     };
 
-const downloadJSON = (typeof Utils?.downloadJSON === "function")
+const downloadJSON = (Utils && typeof Utils.downloadJSON === "function")
   ? Utils.downloadJSON
   : function(filename, obj){
       try {
@@ -364,3 +363,7 @@ export function renderList(state){
   }
 }
 export function renderDetails(state){ /* removed */ }
+
+// Aggregate export for compatibility with app.js expecting { UI }
+export const UI = { initUI, renderList, renderDetails };
+export default UI;
