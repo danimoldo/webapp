@@ -1,5 +1,5 @@
 // js/ui.js
-// Safe fallbacks in case utils.js isn't in sync (cache-safe)
+// Safe fallbacks in case utils.js isn't in sync
 const toast = (Utils && typeof Utils.toast === "function")
   ? Utils.toast
   : function(msg){
@@ -364,6 +364,22 @@ export function renderList(state){
 }
 export function renderDetails(state){ /* removed */ }
 
-// Aggregate export for compatibility with app.js expecting { UI }
-export const UI = { initUI, renderList, renderDetails };
+// Constructor-friendly wrapper so `new UI(state)` works
+export class UI {
+  constructor(state){
+    this.state = state;
+    try { initUI(state); } catch(e){ console.warn("initUI failed:", e); }
+  }
+  renderList(nextState){
+    const s = nextState || this.state;
+    try { return renderList(s); } catch(e){ console.warn("renderList failed:", e); }
+  }
+  renderDetails(nextState){
+    const s = nextState || this.state;
+    try { return renderDetails(s); } catch(e){ console.warn("renderDetails failed:", e); }
+  }
+}
+
+// Aggregate export for non-constructor usage
+export const UI_API = { initUI, renderList, renderDetails };
 export default UI;
