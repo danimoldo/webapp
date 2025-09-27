@@ -1,105 +1,41 @@
 
 (() => {
-  const $ = (sel, ctx=document) => ctx.querySelector(sel);
-  const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
-
-  const modal = $("#asset-modal");
-  const form = $("#asset-form");
-  const btnAdd = $("#btn-add");
-  const btnSave = $("#btn-save");
-  const btnEdit = $("#btn-edit");
-  const btnDelete = $("#btn-delete");
-  const idInput = $("#assetId");
-  const typeInput = $("#assetType");
-  const entryInput = $("#entryDate");
-  const verifyInput = $("#verifyExpiry");
-  const iscirInput = $("#iscirExpiry");
-
-  let mode = "create"; // or "edit"
-
-  function openModal(newMode="create", asset=null) {
-    mode = newMode;
-    if (asset) {
-      idInput.value = asset.id || "";
-      typeInput.value = (asset.type || "").toLowerCase();
-      entryInput.value = toDateInput(asset.entryDate);
-      verifyInput.value = toDateInput(asset.verifyExpiry);
-      iscirInput.value = toDateInput(asset.iscirExpiry);
-    } else {
-      idInput.value = "";
-      typeInput.value = "stivuitor";
-      const today = new Date();
-      entryInput.value = toDateInput(today);
-      verifyInput.value = toDateInput(addMonths(today, 12));
-      iscirInput.value = toDateInput(addMonths(today, 12));
-    }
-    modal.setAttribute("aria-hidden", "false");
+  const $ = (s, c=document)=>c.querySelector(s);
+  const on=(el,ev,fn)=>el&&el.addEventListener(ev,fn);
+  if (!$('#btn-add')){
+    const btn=document.createElement('button'); btn.id='btn-add'; btn.className='btn'; btn.textContent='+ Adăugare';
+    const toolbar = document.querySelector('.toolbar') || document.body;
+    toolbar.insertBefore(btn, toolbar.firstChild);
   }
-
-  function closeModal() {
-    modal.setAttribute("aria-hidden", "true");
+  if (!$('#asset-modal')){
+    const wrap=document.createElement('div');
+    wrap.innerHTML=`
+    <div class="modal" id="asset-modal" aria-hidden="true">
+      <div class="modal__backdrop" data-close></div>
+      <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="asset-modal-title">
+        <div class="modal__header"><h2 id="asset-modal-title">Adăugare / Editare</h2><button class="modal__close" data-close aria-label="Închide">×</button></div>
+        <div class="modal__body">
+          <form id="asset-form">
+            <div class="field"><label for="assetType">Tip</label>
+              <select id="assetType" required><option value="stivuitor">Stivuitor</option><option value="lifter">Liftieră</option><option value="extinctor">Extinctor</option></select>
+            </div>
+            <div class="field"><label for="entryDate">Data intrării</label><input type="date" id="entryDate" required></div>
+            <div class="field"><label for="verifyExpiry">Data expirării verificării</label><input type="date" id="verifyExpiry" required></div>
+            <div class="field"><label for="iscirExpiry">Data expirării ISCIR</label><input type="date" id="iscirExpiry" required></div>
+            <input type="hidden" id="assetId">
+          </form>
+        </div>
+        <div class="modal__footer"><button id="btn-save" class="btn btn-primary">Salvează</button><button id="btn-edit" class="btn">Editează</button><button id="btn-delete" class="btn btn-danger">Șterge</button><span class="modal__spacer"></span><button class="btn" data-close>Renunță</button></div>
+      </div>
+    </div>`;
+    document.body.appendChild(wrap);
   }
-
-  function toDateInput(val) {
-    if (!val) return "";
-    const d = (val instanceof Date) ? val : new Date(val);
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  }
-
-  function addMonths(date, n) {
-    const d = new Date(date);
-    d.setMonth(d.getMonth() + n);
-    return d;
-  }
-
-  function genIdFor(type) {
-    const prefix = type === "stivuitor" ? "S" : (type === "lifter" ? "L" : "E");
-    const n = Math.floor(1 + Math.random()*999);
-    return `${prefix}-${String(n).padStart(3, "0")}`;
-  }
-
-  function gatherForm() {
-    const type = typeInput.value;
-    const payload = {
-      id: idInput.value || genIdFor(type),
-      type,
-      meta: {
-        entryDate: entryInput.value,
-        verifyExpiry: verifyInput.value,
-        iscirExpiry: iscirInput.value
-      }
-    };
-    payload.entryDate = payload.meta.entryDate;
-    payload.verifyExpiry = payload.meta.verifyExpiry;
-    payload.iscirExpiry = payload.meta.iscirExpiry;
-    return payload;
-  }
-
-  function tryCallOrEmit(fnName, eventName, detail) {
-    const app = window.app || window.App || null;
-    if (app && typeof app[fnName] === "function") {
-      try { app[fnName](detail); }
-      catch (e) { console.warn(`[modal] ${fnName} failed, falling back to event`, e); window.dispatchEvent(new CustomEvent(eventName, { detail })); }
-    } else {
-      window.dispatchEvent(new CustomEvent(eventName, { detail }));
-    }
-  }
-
-  window.openAssetEditor = function(asset) { openModal("edit", asset); };
-
-  on(btnAdd, "click", () => openModal("create"));
-  modal.querySelectorAll("[data-close]").forEach(el => on(el, "click", closeModal));
-  on(document, "keydown", (e) => { if (e.key === "Escape" && modal.getAttribute("aria-hidden") === "false") closeModal(); });
-
-  on(btnSave, "click", (e) => { e.preventDefault(); tryCallOrEmit("addAsset", "asset:create", gatherForm()); closeModal(); });
-  on(btnEdit, "click", (e) => { e.preventDefault(); tryCallOrEmit("updateAsset", "asset:update", gatherForm()); closeModal(); });
-  on(btnDelete, "click", (e) => { e.preventDefault(); const id = (document.querySelector("#assetId")?.value || "").trim(); if (!id) return; tryCallOrEmit("removeAsset", "asset:delete", { id }); closeModal(); });
-
-  // Debug no-ops (safe)
-  window.addEventListener("asset:create", (e) => console.debug("[event] asset:create", e.detail));
-  window.addEventListener("asset:update", (e) => console.debug("[event] asset:update", e.detail));
-  window.addEventListener("asset:delete", (e) => console.debug("[event] asset:delete", e.detail));
+  const modal=$("#asset-modal"); const btnAdd=$("#btn-add");
+  function toDateInput(d){ d=new Date(d||Date.now()); const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),da=String(d.getDate()).padStart(2,"0"); return `${y}-${m}-${da}`; }
+  function addMonths(d,n){ d=new Date(d||Date.now()); d.setMonth(d.getMonth()+n); return d; }
+  function open(){ $('#assetId').value=''; $('#assetType').value='stivuitor'; const t=new Date(); $('#entryDate').value=toDateInput(t); $('#verifyExpiry').value=toDateInput(addMonths(t,12)); $('#iscirExpiry').value=toDateInput(addMonths(t,12)); modal.setAttribute('aria-hidden','false'); }
+  function close(){ modal.setAttribute('aria-hidden','true'); }
+  on(btnAdd,'click',open);
+  modal.querySelectorAll('[data-close]').forEach(el=> on(el, 'click', close));
+  on(document,'keydown',(e)=>{ if (e.key==='Escape') close(); });
 })();
