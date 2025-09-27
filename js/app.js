@@ -262,14 +262,7 @@ function addAsset(type, x=null, y=null){
   state.refreshKPIs?.();
   ui.renderDrawer(asset);
   state.emitEvent?.('ASSET_ADDED', { id: asset.id, type: asset.type });
-  // Optional: also show overlay chip via AssetsAdd
-  if (window.AssetsAdd){
-    const px2 = Math.round(px); const py2 = Math.round(py);
-    if (type==='forklift') window.AssetsAdd.addForklift(px2, py2);
-    else if (type==='lifter') window.AssetsAdd.addLifter(px2, py2);
-    else window.AssetsAdd.addExtinguisher(px2, py2);
   }
-}
 
 // Toolbar bindings
 document.getElementById('btnAddForklift').onclick=()=>addAsset('forklift');
