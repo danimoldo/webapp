@@ -3,228 +3,283 @@ import { clamp, now, dist } from './utils.js';
 import { ZoneManager } from './zones.js';
 import { Simulator } from './sim.js';
 import { UI } from './ui.js';
+import { RTLSClient } from './ws-client.js';
 
 const state = {
+  stats: { samples: [], windowSec: 1800 }, // 30 min
+  inventory: [
+    { sku:'ROATA-16', name:'Roată 16"', stock:4, min:4 },
+    { sku:'FURCI-PR', name:'Furci prindere', stock:2, min:3 },
+    { sku:'CARTUS-EXT', name:'Cartuș stingător', stock:5, min:5 }
+  ],
+  work_orders: [
+    { id:'WO-1001', asset_id:'FORK-001', title:'Schimbă roata stânga', status:'Nouă' }
+  ],
   site: { width_m: 250, height_m: 150, height_m_ceiling: 8 },
-  m_per_px: 0.2, // default until calibrated
-  mps: 1.389, // 5 km/h
+  m_per_px: 0.2,
+  mps: 1.389,
   zones: new ZoneManager(),
   assets: [],
   events: [],
   heatmap: { enabled:false, cell: 5, grid: {} },
   pointInZone(pt, z){ return window.pointInPoly?window.pointInPoly(pt,z.polygon):true; },
   emitEvent(type, payload){
-    const msg = (type==='ENTER_ZONE'||type==='EXIT_ZONE') ? `${payload.asset} ${type==='ENTER_ZONE'?'intră în':'iese din'} ${payload.zone}` :
-      (type==='MEET' ? `${payload.a} apropie ${payload.b}` :
-      (type==='LEAVE' ? `${payload.a} se depărtează de ${payload.b}` : JSON.stringify(payload)));
+    const msg=(type==='ENTER_ZONE'||type==='EXIT_ZONE') ? `${payload.asset} ${type==='ENTER_ZONE'?'intră în':'iese din'} ${payload.zone}` :
+      (type==='MEET'?`${payload.a} apropie ${payload.b}` : (type==='LEAVE'?`${payload.a} se depărtează de ${payload.b}` : JSON.stringify(payload)));
     this.events.push({ ts: Date.now(), type, msg });
     ui.renderEvents();
   },
   refreshKPIs(){
     document.getElementById('kpiAssets').textContent = this.assets.length;
-    const late = this.assets.filter(a => new Date(a.next_check) < new Date()).length;
+    const late=this.assets.filter(a => new Date(a.next_check) < new Date()).length;
     document.getElementById('kpiLateInspections').textContent = late;
-    const wo = this.assets.reduce((acc,a)=>acc+(a.wo||[]).filter(w=>w.status!=='Finalizată').length,0);
+    const wo=this.assets.reduce((acc,a)=>acc+(a.wo||[]).filter(w=>w.status!=='Finalizată').length,0);
     document.getElementById('kpiWO').textContent = wo;
   }
 };
+import('./utils.js').then(u=>window.pointInPoly=u.pointInPoly);
 
-// expose pointInPoly for app (from utils via ESM not directly available on window)
-import('./utils.js').then(u => window.pointInPoly = u.pointInPoly);
+const canvasFloor=document.getElementById('floor');
+const canvasOverlay=document.getElementById('overlay');
+const ctxFloor=canvasFloor.getContext('2d');
+const ctxOverlay=canvasOverlay.getContext('2d');
 
-const canvasFloor = document.getElementById('floor');
-const canvasOverlay = document.getElementById('overlay');
-const ctxFloor = canvasFloor.getContext('2d');
-const ctxOverlay = canvasOverlay.getContext('2d');
+let floorImg=new Image();
+floorImg.onload=()=>drawAll();
+floorImg.src='img/floor_example.png';
 
-let floorImg = new Image();
-floorImg.onload = () => drawAll();
-floorImg.src = 'img/floor_example.png';
-
-// Load sample config
 fetch('data/sample_config.json').then(r=>r.json()).then(cfg=>{
-  state.site = cfg.site;
-  state.assets = cfg.assets;
-  state.zones.load(cfg.zones);
-  state.m_per_px = Math.max(state.site.width_m / canvasFloor.width, state.site.height_m / canvasFloor.height);
+  state.site=cfg.site; state.assets=cfg.assets; state.zones.load(cfg.zones);
+  state.m_per_px=Math.max(state.site.width_m/canvasFloor.width, state.site.height_m/canvasFloor.height);
   state.refreshKPIs();
 });
 
-// Simulator + UI
-const sim = new Simulator(state);
-const ui = new UI(state);
+const sim=new Simulator(state);
+const ui=new UI(state);
 
-// Controls
-document.getElementById('btnPlay').onclick = () => sim.setRunning(true);
-document.getElementById('btnPause').onclick = () => sim.setRunning(false);
-document.getElementById('btnReset').onclick = () => resetPositions();
-document.getElementById('btnDrawZone').onclick = () => startZoneDrawing();
-document.getElementById('btnClearZones').onclick = () => { state.zones.clear(); drawAll(); };
-document.getElementById('btnHeatmap').onclick = () => { state.heatmap.enabled = !state.heatmap.enabled; };
-document.getElementById('btnCalibrate').onclick = () => {
-  const w = parseFloat(document.getElementById('siteW').value||'250');
-  const h = parseFloat(document.getElementById('siteH').value||'150');
-  state.site.width_m = w; state.site.height_m = h;
-  state.m_per_px = Math.max(w / canvasFloor.width, h / canvasFloor.height);
-};
-document.getElementById('btnExport').onclick = () => exportConfig();
-document.getElementById('btnImport').onclick = () => document.getElementById('fileImport').click();
-document.getElementById('fileImport').onchange = (e) => importConfig(e.target.files[0]);
-document.getElementById('fileFloor').onchange = (e) => loadFloor(e.target.files[0]);
-document.getElementById('btnScenarios').onclick = () => runScenario();
-
-// Playback slider is UI-only in this lightweight demo
-document.getElementById('playback').oninput = (e)=>{};
-
-// Canvas interactions for zone drawing + asset selection
-let drawing = false;
-canvasOverlay.addEventListener('mousedown', (ev)=>{
-  const p = toMeters(ev);
-  if (drawing) { state.zones.addPoint(p); drawAll(); }
-});
-canvasOverlay.addEventListener('dblclick', (ev)=>{
-  if (drawing) {
-    drawing = false;
-    state.zones.finish('Zonă interzisă','no_go');
-    drawAll();
-  }
-});
-canvasOverlay.addEventListener('click', (ev)=>{
-  if (drawing) return;
-  // pick asset
-  const m = toMeters(ev);
-  const hit = state.assets.find(a => dist(a.pos, m) < 3);
-  ui.renderDrawer(hit||null);
-});
-
-function startZoneDrawing(){ drawing = true; state.zones.startDrawing(); }
-
-function resetPositions() {
-  for (const a of state.assets) {
-    a.pos = [Math.random()*state.site.width_m, Math.random()*state.site.height_m];
-  }
-}
-
-function loadFloor(file){
-  const url = URL.createObjectURL(file);
-  floorImg = new Image();
-  floorImg.onload = () => drawAll();
-  floorImg.src = url;
-}
-
-function exportConfig(){
-  const cfg = {
-    site: state.site,
-    zones: state.zones.zones,
-    assets: state.assets
-  };
-  const blob = new Blob([JSON.stringify(cfg,null,2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'config.json';
-  a.click();
-}
-
-function importConfig(file){
-  const r = new FileReader();
-  r.onload = () => {
-    const cfg = JSON.parse(r.result);
-    state.site = cfg.site || state.site;
-    state.zones.load(cfg.zones||[]);
-    state.assets = cfg.assets || state.assets;
-    state.m_per_px = Math.max(state.site.width_m / canvasFloor.width, state.site.height_m / canvasFloor.height);
-  };
-  r.readAsText(file);
-}
-
-function toMeters(ev){
-  const rect = canvasOverlay.getBoundingClientRect();
-  const x = (ev.clientX - rect.left) * state.m_per_px;
-  const y = (ev.clientY - rect.top) * state.m_per_px;
+// Helpers for toggles + mouse
+function setToggle(btn, on){ if(!btn) return; btn.classList.toggle('is-active', !!on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+function getMouse(ev, canvas){
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width / rect.width;
+  const sy = canvas.height / rect.height;
+  const x = (ev.clientX - rect.left) * sx;
+  const y = (ev.clientY - rect.top) * sy;
   return [x,y];
 }
 
+// Controls
+document.getElementById('btnPlay').onclick=()=>{ sim.setRunning(true); setToggle(document.getElementById('btnPlay'), true); setToggle(document.getElementById('btnPause'), false); };
+document.getElementById('btnPause').onclick=()=>{ sim.setRunning(false); setToggle(document.getElementById('btnPause'), true); setToggle(document.getElementById('btnPlay'), false); };
+document.getElementById('btnReset').onclick=()=>resetPositions();
+document.getElementById('btnDrawZone').onclick=()=>{ startZoneDrawing(); setToggle(document.getElementById('btnDrawZone'), true); };
+document.getElementById('btnClearZones').onclick=()=>{ state.zones.clear(); setToggle(document.getElementById('btnDrawZone'), false); drawAll(); };
+document.getElementById('btnEditZones').onclick=(e)=>{ state.zones.editMode = !state.zones.editMode; setToggle(e.currentTarget, state.zones.editMode); };
+document.getElementById('btnWOBoard').onclick=(e)=>{ const wrap=document.getElementById('kanban'); const on=wrap.style.display==='none'; wrap.style.display= on?'grid':'none'; setToggle(e.currentTarget, on); renderKanban(); renderInventory(); };
+document.getElementById('btnHeatmap').onclick=(e)=>{ state.heatmap.enabled=!state.heatmap.enabled; setToggle(e.currentTarget, state.heatmap.enabled); };
+document.getElementById('btnCalibrate').onclick=()=>{ const w=parseFloat(document.getElementById('siteW').value||'250'); const h=parseFloat(document.getElementById('siteH').value||'150'); state.site.width_m=w; state.site.height_m=h; state.m_per_px=Math.max(w/canvasFloor.width,h/canvasFloor.height); };
+document.getElementById('btnExport').onclick=()=>exportConfig();
+document.getElementById('btnImport').onclick=()=>document.getElementById('fileImport').click();
+document.getElementById('fileImport').onchange=(e)=>importConfig(e.target.files[0]);
+document.getElementById('fileFloor').onchange=(e)=>loadFloor(e.target.files[0]);
+
+// Scenario buttons
+document.getElementById('scnNoGo').onclick=()=>{ const a=state.assets.find(x=>x.type==='lifter')||state.assets[0]; a.vel=[1,0]; state.emitEvent('SCENARIO',{note:'Interdicție încălcată'}); };
+document.getElementById('scnMeet').onclick=()=>{ const f1=state.assets.find(x=>x.type==='forklift'); const f2=state.assets.filter(x=>x.type==='forklift')[1]||state.assets[1]; if(f1&&f2){ f1.pos=[50,50]; f1.vel=[1,0]; f2.pos=[60,50]; f2.vel=[-1,0]; state.emitEvent('SCENARIO',{note:'Apropiere periculoasă'}); } };
+document.getElementById('scnExpired').onclick=()=>{ const e=state.assets.find(x=>x.type==='extinguisher'); if(e){ e.next_check='2025-01-01'; state.emitEvent('ALERT',{asset:e.id, note:'Stingător expirat'}); } };
+
+// Canvas interactions
+
+let drawing=false;
+let draggingExt=null;
+let editingVertex=null;
+
+canvasOverlay.addEventListener('mousemove',(ev)=>{
+  const m = toMeters(ev);
+  if (drawing) state.zones.setHover(m);
+  if (draggingExt){
+    // snap to 1m grid
+    draggingExt.pos = [Math.round(m[0]), Math.round(m[1])];
+  }
+  if (editingVertex){
+    const z = state.zones.zones[editingVertex.zoneIndex];
+    z.polygon[editingVertex.vertIndex] = [Math.round(m[0]), Math.round(m[1])];
+  }
+});
+
+canvasOverlay.addEventListener('mousedown',(ev)=>{
+  const m = toMeters(ev);
+  if (state.zones.editMode){
+    const v = state.zones.findVertex(m, 3);
+    if (v){ editingVertex = v; return; }
+  }
+  if (drawing){ state.zones.addPoint(m); return; }
+  // pick extinguisher to drag
+  const ext = state.assets.find(a=>a.type==='extinguisher' && Math.hypot(a.pos[0]-m[0], a.pos[1]-m[1])<=3);
+  if (ext){ draggingExt = ext; return; }
+});
+
+window.addEventListener('mouseup',()=>{ draggingExt=null; editingVertex=null; });
+
+let drawing=false;
+canvasOverlay.addEventListener('mousedown',(ev)=>{ const p=toMeters(ev); if(drawing){ state.zones.addPoint(p); drawAll(); }});
+canvasOverlay.addEventListener('dblclick',(ev)=>{ if(drawing){ drawing=false; state.zones.finish('Zonă interzisă','no_go'); setToggle(document.getElementById('btnDrawZone'), false); drawAll(); } else if (state.zones.editMode) { const name=prompt('Nume zonă:'); if(name){ /* rename first hit zone */ const m=toMeters(ev); const hits=state.zones.containsPoint?state.zones.containsPoint(m):[]; if(hits&&hits.length){ hits[0].name=name; } } } });
+canvasOverlay.addEventListener('click',(ev)=>{ if(drawing) return; const [px,py]=getMouse(ev, canvasOverlay);
+  const hit=state.assets.find(a=>{ const ax=a.pos[0]/state.m_per_px, ay=a.pos[1]/state.m_per_px; return Math.hypot(ax-px, ay-py)<=10; });
+  ui.renderDrawer(hit||null);
+});
+
+function startZoneDrawing(){ drawing=true; state.zones.startDrawing(); }
+function resetPositions(){ for(const a of state.assets){ a.pos=[Math.random()*state.site.width_m, Math.random()*state.site.height_m]; } }
+function loadFloor(file){ const url=URL.createObjectURL(file); floorImg=new Image(); floorImg.onload=()=>drawAll(); floorImg.src=url; }
+
+function exportConfig(){ const cfg={site:state.site, zones:state.zones.zones, assets:state.assets}; const blob=new Blob([JSON.stringify(cfg,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='config.json'; a.click(); }
+function importConfig(file){ const r=new FileReader(); r.onload=()=>{ const cfg=JSON.parse(r.result); state.site=cfg.site||state.site; state.zones.load(cfg.zones||[]); state.assets=cfg.assets||state.assets; state.m_per_px=Math.max(state.site.width_m/canvasFloor.width, state.site.height_m/canvasFloor.height); }; r.readAsText(file); }
+function toMeters(ev){ const rect=canvasOverlay.getBoundingClientRect(); const x=(ev.clientX-rect.left)*state.m_per_px; const y=(ev.clientY-rect.top)*state.m_per_px; return [x,y]; }
+
 function drawAll(){
-  // floor
   ctxFloor.clearRect(0,0,canvasFloor.width, canvasFloor.height);
   ctxFloor.drawImage(floorImg, 0,0, canvasFloor.width, canvasFloor.height);
-
-  // overlay
   ctxOverlay.clearRect(0,0,canvasOverlay.width, canvasOverlay.height);
-
-  // zones
   state.zones.draw(ctxOverlay, 1/state.m_per_px);
-
-  // heatmap (optional lightweight)
-  if (state.heatmap.enabled) drawHeatmap();
-
-  // assets
-  for (const a of state.assets) {
-    const x = a.pos[0] / state.m_per_px;
-    const y = a.pos[1] / state.m_per_px;
+  if(state.heatmap.enabled) drawHeatmap();
+  for(const a of state.assets){
+    const x=a.pos[0]/state.m_per_px, y=a.pos[1]/state.m_per_px;
     ctxOverlay.fillStyle = a.type==='forklift' ? '#8ef' : (a.type==='lifter' ? '#7f7' : '#faa');
-    if (a.status==='gray') ctxOverlay.fillStyle = 'rgba(200,200,200,0.9)';
-    ctxOverlay.beginPath();
-    ctxOverlay.arc(x, y, 6, 0, Math.PI*2);
-    ctxOverlay.fill();
-    // id
-    ctxOverlay.fillStyle = '#cde';
-    ctxOverlay.fillText(a.id, x+8, y-8);
+    if(a.status==='gray') ctxOverlay.fillStyle='rgba(200,200,200,0.9)';
+    ctxOverlay.beginPath(); ctxOverlay.arc(x,y,6,0,Math.PI*2); ctxOverlay.fill();
+    ctxOverlay.fillStyle='#cde'; ctxOverlay.fillText(a.id, x+8, y-8);
   }
-
   requestAnimationFrame(drawAll);
 }
 
-// Heatmap accumulates in grid keyed by 'gx,gy'
-function addHeat(x,y,dt){
-  const g = state.heatmap;
-  const gx = Math.floor(x / g.cell), gy = Math.floor(y / g.cell);
-  const key = gx+','+gy;
-  g.grid[key] = (g.grid[key]||0) + dt;
-}
-function drawHeatmap(){
-  const g = state.heatmap;
-  const cellPx = g.cell / state.m_per_px;
-  for (const [key, val] of Object.entries(g.grid)) {
-    const [gx, gy] = key.split(',').map(Number);
-    const x = gx*cellPx, y = gy*cellPx;
-    const alpha = Math.min(0.4, val/120); // saturate around 2 min dwell
-    ctxOverlay.fillStyle = `rgba(255,128,0,${alpha})`;
-    ctxOverlay.fillRect(x,y,cellPx,cellPx);
-  }
-}
+// Heatmap
+function addHeat(x,y,dt){ const g=state.heatmap; const gx=Math.floor(x/g.cell), gy=Math.floor(y/g.cell); const key=gx+','+gy; g.grid[key]=(g.grid[key]||0)+dt; }
+function drawHeatmap(){ const g=state.heatmap; const cellPx=g.cell/state.m_per_px; for(const [key,val] of Object.entries(g.grid)){ const [gx,gy]=key.split(',').map(Number); const x=gx*cellPx, y=gy*cellPx; const alpha=Math.min(0.4, val/120); ctxOverlay.fillStyle=`rgba(255,128,0,${alpha})`; ctxOverlay.fillRect(x,y,cellPx,cellPx); } }
 
-// Demo scenarios
-function runScenario(){
-  if (!state.assets.length) return;
-  // 1) Interdicție încălcată
-  const a = state.assets[0];
-  a.vel = [1,0]; // push towards right; zone handler will bounce but will trigger ENTER/EXIT
-  // 2) Apropiere periculoasă
-  if (state.assets[1]) {
-    const b = state.assets[1];
-    b.vel = [-1,0];
-    b.pos = [a.pos[0]+10, a.pos[1]];
+// Minimap
+const mini=document.getElementById('minimap'); const miniCtx=mini.getContext('2d');
+function drawMinimap(){
+  miniCtx.clearRect(0,0,mini.width, mini.height);
+  miniCtx.fillStyle='#10142f'; miniCtx.fillRect(0,0,mini.width, mini.height);
+  for(const z of state.zones.zones){
+    miniCtx.beginPath();
+    const sx=mini.width/state.site.width_m, sy=mini.height/state.site.height_m;
+    const poly=z.polygon.map(([x,y])=>[x*sx,y*sy]);
+    miniCtx.moveTo(poly[0][0], poly[0][1]); for(let i=1;i<poly.length;i++) miniCtx.lineTo(poly[i][0], poly[i][1]);
+    miniCtx.closePath(); miniCtx.fillStyle='rgba(255,80,80,0.15)'; miniCtx.strokeStyle='rgba(255,80,80,0.8)'; miniCtx.fill(); miniCtx.stroke();
   }
-  // 3) Inspecție expirată -> auto WO
-  const exp = state.assets.find(x=>x.type==='extinguisher');
-  if (exp) {
-    exp.next_check = '2025-01-01';
-    state.emitEvent('ALERT', {asset:exp.id, note:'Stingător expirat'});
+  for(const a of state.assets){
+    const sx=mini.width/state.site.width_m, sy=mini.height/state.site.height_m;
+    const x=a.pos[0]*sx, y=a.pos[1]*sy;
+    miniCtx.fillStyle = a.type==='forklift' ? '#8ef' : (a.type==='lifter' ? '#7f7' : '#faa');
+    if(a.status==='gray') miniCtx.fillStyle='rgba(200,200,200,0.9)';
+    miniCtx.beginPath(); miniCtx.arc(x,y,3,0,Math.PI*2); miniCtx.fill();
   }
+  requestAnimationFrame(drawMinimap);
+}
+drawMinimap();
+
+// Analytics
+function recordSample(dt){
+  const ts = Date.now();
+  const rec = { ts, moving: {} };
+  for(const a of state.assets){
+    // moving if recent displacement (status isn't reliable)
+    const speed = Math.hypot(a.vel[0], a.vel[1]) * state.m_per_px; // px/s approx -> ok for heuristic
+    rec.moving[a.id] = speed > 0.05 ? 1 : 0;
+  }
+  state.stats.samples.push(rec);
+  const cutoff = ts - state.stats.windowSec*1000;
+  while(state.stats.samples.length && state.stats.samples[0].ts < cutoff) state.stats.samples.shift();
+}
+function calcUtilization(){
+  const byAsset = {};
+  for(const s of state.stats.samples){
+    for(const [id,val] of Object.entries(s.moving)){
+      const b = byAsset[id] || (byAsset[id]={m:0,n:0});
+      b.m += val; b.n += 1;
+    }
+  }
+  return Object.entries(byAsset).map(([id,b])=>({id, pct: b.n? Math.round(b.m/b.n*100):0}));
+}
+function renderAnalytics(){
+  const util = calcUtilization();
+  document.getElementById('chartUtil').innerHTML =
+    util.map(u => `<div class="bar" style="height:${u.pct}%"><div class="val">${u.pct}%</div></div>`).join('');
+  // Events per asset
+  const counts = {};
+  const cutoff = Date.now() - 30*60*1000;
+  for(const ev of state.events){ if(ev.ts<cutoff) continue; const m = ev.msg.match(/FORK-[0-9]+|LIFT-[0-9]+|EXT-[0-9]+/); const id = m?m[0]:'N/A'; counts[id]=(counts[id]||0)+1; }
+  const arr = Object.entries(counts).map(([id,n])=>({id,n})).sort((a,b)=>b.n-a.n);
+  const max = Math.max(1, ...arr.map(x=>x.n));
+  document.getElementById('chartEvents').innerHTML =
+    arr.map(x => `<div class="bar" style="height:${Math.round(x.n/max*100)}%"><div class="val">${x.n}</div></div>`).join('');
+}
+document.getElementById('btnRecalc').onclick=renderAnalytics;
+document.getElementById('btnCSV').onclick=()=>{
+  const cutoff=Date.now()-30*60*1000; const rows=[['timestamp','type','message']];
+  for(const ev of state.events) if(ev.ts>=cutoff) rows.push([new Date(ev.ts).toISOString(), ev.type, ev.msg.replaceAll(',',';')]);
+  const csv=rows.map(r=>r.join(',')).join('
+'); const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='raport_evenimente.csv'; a.click();
+};
+
+// Kanban + Inventory rendering
+function renderKanban(){
+  const buckets = { 'Nouă':[], 'În lucru':[], 'Finalizată':[] };
+  for(const a of state.assets){
+    for(const w of (a.wo||[])){
+      buckets[w.status] = buckets[w.status] || [];
+      buckets[w.status].push({ ...w, asset_id:a.id });
+    }
+  }
+  const fill = (id, list) => {
+    const el = document.getElementById(id);
+    el.innerHTML = (list||[]).map(w=>`
+      <div class="card">
+        <b>${w.id}</b> — ${w.title}<br/><small>${w.asset_id}</small>
+        <div class="actions">
+          <button data-id="${w.id}" data-to="În lucru">În lucru</button>
+          <button data-id="${w.id}" data-to="Finalizată">Finalizează</button>
+        </div>
+      </div>`).join('');
+    // bind actions
+    el.querySelectorAll('button').forEach(btn=>{
+      btn.onclick = () => {
+        const id = btn.getAttribute('data-id'); const to = btn.getAttribute('data-to');
+        for(const a of state.assets){ const w=(a.wo||[]).find(x=>x.id===id); if(w){ w.status = to; break; } }
+        renderKanban(); state.refreshKPIs();
+      };
+    });
+  };
+  fill('cardsNoua', buckets['Nouă']);
+  fill('cardsInLucru', buckets['În lucru']);
+  fill('cardsFinalizata', buckets['Finalizată']);
+}
+function renderInventory(){
+  const el = document.getElementById('inventory');
+  el.innerHTML = '<h4>Inventar piese (lite)</h4><table><tr><th>SKU</th><th>Denumire</th><th>Stoc</th></tr>' +
+    state.inventory.map(i=>`<tr><td>${i.sku}</td><td>${i.name}</td><td class="${i.stock<=i.min?'low':''}">${i.stock}</td></tr>`).join('') + '</table>';
 }
 
 // Main loop
-let last = now();
-function loop(){
-  const t = now(); const dt = (t-last)/1000; last = t;
-  sim.tick();
-  for (const a of state.assets) if (state.heatmap.enabled) addHeat(a.pos[0], a.pos[1], dt);
+let last=now();
+let sampleAcc=0;
+function loop(){ const t=now(); const dt=(t-last)/1000; last=t; sim.tick(); if(state.heatmap.enabled){ for(const a of state.assets) addHeat(a.pos[0], a.pos[1], dt); }
+  sampleAcc += dt; if(sampleAcc>=1){ sampleAcc=0; recordSample(1); }
   requestAnimationFrame(loop);
 }
 loop();
+renderAnalytics();
 
-// Expose selection to UI
-window.addEventListener('click', (ev)=>{
-  // handled in canvas click
-});
+let last=now();
+function loop(){ const t=now(); const dt=(t-last)/1000; last=t; sim.tick(); if(state.heatmap.enabled){ for(const a of state.assets) addHeat(a.pos[0], a.pos[1], dt); } requestAnimationFrame(loop); }
+loop();
+
+// Init toggles
+setToggle(document.getElementById('btnPlay'), true);
+setToggle(document.getElementById('btnPause'), false);
+setToggle(document.getElementById('btnHeatmap'), state.heatmap.enabled);
+
+// Backend WS
+const rtls=new RTLSClient(state); rtls.start();
