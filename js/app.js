@@ -1,21 +1,22 @@
-// app.js (legacy shim - hotfix v2)
-// This is a plain (non-module) script. It provides globals expected by older code paths.
+// app.js (legacy shim - hotfix v5)
 (function () {
-  // Provide a ui namespace with a renderEvents no-op to silence callers
   window.ui = window.ui || {};
   if (typeof window.ui.renderEvents !== 'function') {
-    window.ui.renderEvents = function () { /* legacy no-op */ };
+    window.ui.renderEvents = function () {};
   }
-
-  // Provide a tolerant emitEvent hook used by older simulators
   if (typeof window.emitEvent !== 'function') {
-    window.emitEvent = function () { /* legacy no-op */ };
+    window.emitEvent = function () {};
   }
-
-  // Provide a tolerant drawMap placeholder (loop will guard its existence)
   if (typeof window.drawMap !== 'function') {
-    window.drawMap = function () { /* legacy no-op */ };
+    window.drawMap = function () {};
   }
-
-  console.log('[legacy shim] app.js loaded');
+  var banner = document.getElementById('diag-banner');
+  var toggle = document.getElementById('diag-toggle');
+  if (banner) {
+    banner.textContent = '[legacy shim] loaded';
+  }
+  if (toggle) {
+    // Mirror status class on toggle too
+    toggle.classList.remove('ok', 'error');
+  }
 })();
