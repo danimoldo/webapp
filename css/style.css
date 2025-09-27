@@ -1,11 +1,9 @@
 
-:root {
-  --bg:#0f1220; --panel:#151935; --muted:#aab; --accent:#5dd4ff; --ok:#34d399; --warn:#f59e0b; --err:#ef4444;
-}
-* { box-sizing: border-box; }
-body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: #eef; }
-header { padding: 12px 16px; border-bottom: 1px solid #2a2f55; background: linear-gradient(180deg, #13183a, #0f1220); }
-h1 { margin:0 0 8px; font-size: 18px; font-weight: 700; }
+:root { --bg:#0f1220; --panel:#151935; --muted:#aab; --accent:#5dd4ff; --ok:#34d399; --warn:#f59e0b; --err:#ef4444; }
+* { box-sizing:border-box; }
+body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color:#eef; }
+header { padding:12px 16px; border-bottom:1px solid #2a2f55; background: linear-gradient(180deg, #13183a, #0f1220); }
+h1 { margin:0 0 8px; font-size:18px; font-weight:700; }
 .kpis { display:flex; gap:12px; }
 .kpi { background:var(--panel); border:1px solid #2a2f55; border-radius:14px; padding:10px 12px; min-width:140px; }
 .kpi span { display:block; font-size:20px; font-weight:700; color:#fff; }
@@ -26,10 +24,7 @@ h1 { margin:0 0 8px; font-size: 18px; font-weight: 700; }
 
 .controls { display:flex; align-items:center; gap:10px; background:#0f1330; border:1px solid #2a2f55; border-radius:12px; padding:8px 10px; }
 .controls input[type=range] { width:300px; }
-
 .drawer { width:360px; background:#0f1330; border:1px solid #2a2f55; border-radius:16px; padding:12px; position:sticky; top:12px; height: calc(100vh - 24px); overflow:auto; }
-.drawer h2 { margin:6px 0 8px; }
-.drawer .qr { background:#111840; padding:8px; border-radius:12px; text-align:center; }
 
 #eventsPane { background:#0f1330; border:1px solid #2a2f55; border-radius:12px; padding:8px; }
 .events-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
@@ -41,7 +36,7 @@ h1 { margin:0 0 8px; font-size: 18px; font-weight: 700; }
 .badge.warn { color:#ffd479; border-color:#654; }
 .badge.err { color:#ff8a8a; border-color:#733; }
 
-/* Toggle buttons */
+/* Toggle state visuals */
 .toolbar button.is-active, .scenarios button.is-active, .controls button.is-active,
 .toolbar button[aria-pressed="true"], .scenarios button[aria-pressed="true"], .controls button[aria-pressed="true"] {
   border-color: var(--accent);
@@ -49,16 +44,10 @@ h1 { margin:0 0 8px; font-size: 18px; font-weight: 700; }
 }
 
 /* Minimap */
-.minimap {
-  position:absolute;
-  right:12px; top:12px;
-  width:220px; height:132px;
-  border:1px solid #2a2f55; border-radius:10px; background:#0b0f28cc; backdrop-filter: blur(4px);
-  pointer-events:none;
-}
+.minimap { position:absolute; right:12px; top:12px; width:220px; height:132px; border:1px solid #2a2f55; border-radius:10px; background:#0b0f28cc; pointer-events:none; }
 .minimap canvas { width:100%; height:100%; display:block; }
 
-/* Scenario bar + analytics */
+/* Scenarios + Analytics + Kanban + Inventory */
 .scenarios { display:flex; gap:8px; flex-wrap:wrap; }
 .scenarios button { background:#1a1f46; color:#eaf; border:1px solid #2a2f55; padding:6px 10px; border-radius:10px; cursor:pointer; }
 .analytics { background:#0f1330; border:1px solid #2a2f55; border-radius:12px; padding:10px; }
@@ -68,19 +57,7 @@ h1 { margin:0 0 8px; font-size: 18px; font-weight: 700; }
 .legend { display:flex; gap:12px; font-size:12px; color:#aab; margin-top:6px; }
 .legend .swatch { width:10px; height:10px; display:inline-block; background:#1f275c; border:1px solid #334; margin-right:4px; }
 
-footer { padding:8px 16px; color:#9aa; border-top:1px solid #2a2f55; }
-
-
-/* Zone edit handles */
+/* Zone vertex handles (edit mode) */
 .handle { width:8px; height:8px; background:#ffb3b3; border:1px solid #f66; border-radius:3px; position:absolute; }
 
-/* Kanban + Inventory */
-.kanban { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-top:10px; }
-.col { background:#0f1330; border:1px solid #2a2f55; border-radius:12px; padding:8px; }
-.col h4 { margin:0 0 6px; font-size:13px; color:#cde; }
-.card { background:#131a3a; border:1px solid #2a2f55; border-radius:10px; padding:6px 8px; margin-bottom:6px; font-size:12px; }
-.card .actions { display:flex; gap:6px; margin-top:6px; }
-.inv { margin-top:10px; }
-.inv table { width:100%; border-collapse: collapse; font-size:12px; }
-.inv th, .inv td { border-bottom:1px dashed #2a2f55; padding:4px 6px; text-align:left; }
-.inv .low { color:#ffb; }
+footer { padding:8px 16px; color:#9aa; border-top:1px solid #2a2f55; }

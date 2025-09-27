@@ -1,4 +1,4 @@
-// ws-client.js
+// ws-client.js (ES module)
 export class RTLSClient {
   constructor(state){ this.state=state; this.ws=null; this.mode='fallback'; this.timer=null; }
   start(){

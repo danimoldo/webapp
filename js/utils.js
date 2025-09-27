@@ -1,7 +1,7 @@
-// utils.js
+// utils.js (ES module)
 export const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 export const now = () => performance.now();
-export function dist(a, b) { const dx = a[0]-b[0], dy = a[1]-b[1]; return Math.hypot(dx, dy); }
+export function dist(a, b) { const dx=a[0]-b[0], dy=a[1]-b[1]; return Math.hypot(dx, dy); }
 export function normalize(vx, vy) { const m = Math.hypot(vx, vy) || 1; return [vx/m, vy/m]; }
 export function pointInPoly(pt, poly) {
   let [x, y] = pt; let inside = false;

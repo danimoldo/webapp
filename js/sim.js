@@ -1,4 +1,4 @@
-// sim.js
+// sim.js (ES module)
 import { clamp, now, normalize, dist } from './utils.js';
 export class Simulator {
   constructor(state){ this.state=state; this.running=true; this.lastTick=now(); this.historyMinutes=30; this.trails=new Map(); }
@@ -9,26 +9,35 @@ export class Simulator {
     const bounds={w:this.state.site.width_m, h:this.state.site.height_m};
     for(const a of this.state.assets){
       let [vx,vy]=normalize(a.vel[0], a.vel[1]); vx*=pxps; vy*=pxps;
-      const nx=clamp(a.pos[0]+(vx*dt)*this.state.m_per_px,0,bounds.w);
-      const ny=clamp(a.pos[1]+(vy*dt)*this.state.m_per_px,0,bounds.h);
+      let nx=a.pos[0]+(vx*dt)*this.state.m_per_px;
+      let ny=a.pos[1]+(vy*dt)*this.state.m_per_px;
 
+      // steer away from no-go zones
+      let hitNoGo=false;
+      for(const z of this.state.zones.zones){
+        const inside=this.state.pointInZone([nx,ny], z);
+        if(inside){ if(z.type==='no_go'){ hitNoGo=true; } }
+      }
+      if(hitNoGo){ const tmp=vx; vx=-vy; vy=tmp; nx=a.pos[0]+(vx*dt)*this.state.m_per_px; ny=a.pos[1]+(vy*dt)*this.state.m_per_px; }
+
+      nx=clamp(nx,0,bounds.w); ny=clamp(ny,0,bounds.h);
+
+      // zone enter/exit & proximity
       const prevInside=new Set(a.insideZones||[]); const currentInside=new Set();
       for(const z of this.state.zones.zones){
         const inside=this.state.pointInZone([nx,ny], z);
         if(inside){ currentInside.add(z.id); if(!prevInside.has(z.id)) this.state.emitEvent('ENTER_ZONE',{asset:a.id,zone:z.name}); }
         else { if(prevInside.has(z.id)) this.state.emitEvent('EXIT_ZONE',{asset:a.id,zone:z.name}); }
-        if(inside && z.type==='no_go'){ const tmp=a.vel[0]; a.vel[0]=-a.vel[1]; a.vel[1]=tmp; }
       }
       a.insideZones=Array.from(currentInside);
 
       for(const b of this.state.assets) if(b!==a){
-        // separation steering
-        const dx=b.pos[0]-a.pos[0], dy=b.pos[1]-a.pos[1]; const d=Math.hypot(dx,dy);
-        if(d>0 && d < ((a.bubble_m||3)+(b.bubble_m||3))*0.8){ a.vel[0] -= dx*0.05; a.vel[1] -= dy*0.05; }
         const d=dist(a.pos,b.pos); const threshold=(a.bubble_m||3)+(b.bubble_m||3);
         const k=a.id+'|'+b.id; a._meet=a._meet||{}; const prev=!!a._meet[k]; const nowMeet=d<=threshold;
         if(nowMeet && !prev){ this.state.emitEvent('MEET',{a:a.id,b:b.id}); a._meet[k]=true; }
         if(!nowMeet && prev){ this.state.emitEvent('LEAVE',{a:a.id,b:b.id}); a._meet[k]=false; }
+        // separation
+        if(d>0 && d < threshold*0.8){ const dx=b.pos[0]-a.pos[0], dy=b.pos[1]-a.pos[1]; a.vel[0]-=dx*0.05; a.vel[1]-=dy*0.05; }
       }
 
       const moved=(Math.hypot(nx-a.pos[0], ny-a.pos[1])>1e-3); if(moved) a.lastMovedAt=t;
