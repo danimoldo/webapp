@@ -38,12 +38,21 @@ let floorImg=new Image();
 floorImg.onload=()=>drawAll();
 floorImg.src='img/floor_example.png';
 
-// Load sample config
-fetch('data/sample_config.json').then(r=>r.json()).then(cfg=>{
-  state.site=cfg.site; state.assets=cfg.assets; state.zones.load(cfg.zones);
-  state.m_per_px=Math.max(state.site.width_m/canvasFloor.width, state.site.height_m/canvasFloor.height);
+// Load sample config (can be disabled with ?empty=1 or ?seed=0)
+const __params = new URLSearchParams(location.search);
+const __loadSample = !(__params.get('empty')==='1' || __params.get('seed')==='0');
+if(__loadSample){
+  fetch('data/sample_config.json').then(r=>r.json()).then(cfg=>{
+    state.site=cfg.site; state.assets=cfg.assets; state.zones.load(cfg.zones);
+    state.m_per_px=Math.max(state.site.width_m/canvasFloor.width, state.site.height_m/canvasFloor.height);
+    state.refreshKPIs();
+  });
+}else{
+  // Start empty; keep default site size; just refresh KPIs
+  state.assets=[]; state.zones.load([]);
   state.refreshKPIs();
-});
+}
+
 
 // Simulator + UI
 const sim=new Simulator(state);
