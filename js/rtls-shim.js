@@ -1,27 +1,19 @@
-// js/rtls-shim.js (LAZY VERSION)
-//
-// Fixes timing issues when add-assets.js (type="module") hasn't finished
-// loading before this shim runs. We DON'T capture AssetsAdd at load time;
-// instead we look it up on every call.
+// js/rtls-shim.js
+// Provides a stub RTLSClient class that delegates to AssetsAdd
 
-(function () {
-  // Ensure global namespace
-  const R = (window.rtls = window.rtls || {});
-
-  // Helper to safely invoke a method on AssetsAdd when it's ready
-  function call(method, ...args) {
-    const A = window.AssetsAdd;
-    if (A && typeof A[method] === 'function') return A[method](...args);
-    console.warn(`[rtls-shim] AssetsAdd.${method} not ready yet`);
+class RTLSClient {
+  constructor(state) {
+    this.state = state;
   }
+  start() { if (window.AssetsAdd?.start) window.AssetsAdd.start(); }
+  stop()  { if (window.AssetsAdd?.stop) window.AssetsAdd.stop(); }
 
-  if (typeof R.start !== 'function') R.start = () => call('start');
-  if (typeof R.stop  !== 'function') R.stop  = () => call('stop');
+  addForklift(...args)     { return window.AssetsAdd?.addForklift(...args); }
+  addLifter(...args)       { return window.AssetsAdd?.addLifter(...args); }
+  addExtinguisher(...args) { return window.AssetsAdd?.addExtinguisher(...args); }
+  setScale(...args)        { return window.AssetsAdd?.setScale(...args); }
+  getState()               { return window.AssetsAdd?.getState(); }
+}
 
-  const map = ['addForklift','addLifter','addExtinguisher','setScale','getState'];
-  for (const fn of map) {
-    if (typeof R[fn] !== 'function') {
-      R[fn] = (...args) => call(fn, ...args);
-    }
-  }
-})();
+// Expose globally
+window.RTLSClient = RTLSClient;
