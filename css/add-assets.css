@@ -1,1 +1,8 @@
-/* placeholder for add-assets.css from stage1 */
+.asset{position:absolute;display:flex;align-items:center;gap:6px;padding:2px 6px;
+ border-radius:12px;background:rgba(0,0,0,.35);user-select:none;cursor:default;}
+.asset .glyph{font-size:18px;line-height:1;}
+.asset .label{font:600 11px/1.2 system-ui,sans-serif;color:#fff;opacity:.9;}
+.asset.ext.expired{outline:2px solid #ef4444;outline-offset:2px;}
+.toolbar .btn{padding:6px 10px;border-radius:10px;border:0;background:#0ea5e9;color:#fff;
+ font:600 12px/1 system-ui,sans-serif;}
+.toolbar .btn:hover{filter:brightness(.95);}
