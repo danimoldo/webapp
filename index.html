@@ -8,6 +8,11 @@
 <link href="favicon.ico" rel="icon"/>
 <link href="css/style.css" rel="stylesheet"/>
   <link rel="stylesheet" href="css/modal.css">
+
+  <style>
+    /* overlay canvas for assets if native renderer missing */
+    #asset-overlay{position:fixed;inset:0;pointer-events:none}
+  </style>
 </head>
 <body>
 
@@ -40,9 +45,9 @@
 <button id="btnImport">Import Config</button>
 
 <span class="sep"></span>
-<button id="btnAddForklift">Adaugă stivuitor</button>
-<button id="btnAddLifter">Adaugă lifter</button>
-<button id="btnAddExt">Adaugă extinctor</button>
+
+
+
 </section>
 <section class="main">
 <div class="left">
@@ -149,5 +154,6 @@
   <script src="js/add_modal.js"></script>
   <script src="js/add_modal_adapter.js"></script>
   <script src="js/empty_mode.js"></script>
+  <script src="js/add_modal_adapter_strong.js"></script>
 </body>
 </html>
