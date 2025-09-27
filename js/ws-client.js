@@ -1,6 +1,5 @@
 // js/ws-client.js
-// WS client with environment-aware URL and soft fallback to simulator.
-// Back-compat: now also exports RTLSClient (legacy API expected by app.js).
+// Stable WS helpers + RTLSClient used by app.js (Stage 1 friendly)
 
 export function makeWSUrl(){
   try{
@@ -8,86 +7,61 @@ export function makeWSUrl(){
     const u = new URL(location.href);
     const qp = u.searchParams.get('ws');
     if (qp) return qp;
-    if (isPages) return null;                 // no WS by default on GH Pages
-    return 'ws://localhost:8081/positions';   // local dev default
+    if (isPages) return null;                 // No WS on GitHub Pages by default
+    return 'ws://localhost:8081/positions';   // Local dev default
   }catch(e){ return null; }
 }
 
-export function connect(onMsg, onOpen, onClose){
+// Minimal connect() that won't crash if WS is unavailable.
+// onMessage receives already-parsed JSON messages.
+export function connect({ onMessage, onOpen, onClose } = {}){
   const url = makeWSUrl();
+  let ws = null, closed = false;
+
+  function softClose(reason){
+    try{ ws && ws.close(); }catch(_){}
+    onClose && onClose(reason || 'closed');
+  }
+
   if(!url){
-    onClose?.('no-ws-url'); // signal simulator should remain active
-    return null;
+    // No WS in this environment: simulate "no-WS" close to let app fall back.
+    setTimeout(()=> softClose('no-ws-url'), 0);
+    return { close: ()=>{ closed=true; } };
   }
-  let closedOnce = false;
+
   try{
-    const ws = new WebSocket(url);
-    let openTimer = setTimeout(()=>{
-      try{ ws.close(); }catch(_){}
-      onClose?.('timeout');
-    }, 1500);
-
-    ws.addEventListener('open', ()=>{ clearTimeout(openTimer); onOpen?.(); });
-    ws.addEventListener('message', (ev)=> onMsg?.(ev.data) );
-    ws.addEventListener('close', ()=>{ if(!closedOnce){ closedOnce=true; onClose?.('closed'); } });
-    ws.addEventListener('error', ()=>{ onClose?.('error'); });
-
-    return ws;
+    ws = new WebSocket(url);
+    ws.addEventListener('open', ()=> onOpen && onOpen());
+    ws.addEventListener('message', (ev)=>{
+      try{ const msg = JSON.parse(ev.data); onMessage && onMessage(msg); }
+      catch(e){ console.warn('[ws] bad message', e); }
+    });
+    ws.addEventListener('close', ()=>!closed && softClose('closed'));
+    ws.addEventListener('error', ()=>!closed && softClose('error'));
   }catch(e){
-    onClose?.('exception');
-    return null;
+    console.warn('[ws] failed to open', e);
+    setTimeout(()=> softClose('exception'), 0);
   }
+
+  return { close: ()=>{ closed=true; softClose('closed-by-app'); } };
 }
 
-// ---- Legacy class API (for existing app.js) ----
-export class RTLSClient {
-  constructor({ url, onMessage, onOpen, onClose } = {}){
-    this._onMessage = onMessage;
-    this._onOpen = onOpen;
-    this._onClose = onClose;
-    this.url = url || makeWSUrl();
-    this.ws = null;
-    this.ready = false;
+// ---- RTLSClient (used by app.js) -----------------------------------------
+// Stage‑1: delegate movement/add/remove to the in-page engine (AssetsAdd).
+// Your app calls: const rtls = new RTLSClient(state); rtls.start();
 
-    if(!this.url){
-      // No WS in this environment (e.g., GH Pages) -> signal fallback
-      this._onClose?.('no-ws-url');
-      return;
-    }
-    try{
-      this.ws = new WebSocket(this.url);
-      this._openTimer = setTimeout(()=>{
-        try{ this.ws.close(); }catch(_){}
-        this._onClose?.('timeout');
-      }, 1500);
+export class RTLSClient{
+  constructor(state){
+    this.state = state || {};
+  }
+  start(){ if (window.AssetsAdd?.start) window.AssetsAdd.start(); }
+  stop(){ if (window.AssetsAdd?.stop) window.AssetsAdd.stop(); }
 
-      this.ws.addEventListener('open', ()=>{
-        clearTimeout(this._openTimer);
-        this.ready = true;
-        this._onOpen?.();
-      });
-      this.ws.addEventListener('message', (ev)=>{
-        this._onMessage?.(ev.data);
-      });
-      this.ws.addEventListener('close', ()=>{
-        this.ready = false;
-        this._onClose?.('closed');
-      });
-      this.ws.addEventListener('error', ()=>{
-        this.ready = false;
-        this._onClose?.('error');
-      });
-    }catch(e){
-      this._onClose?.('exception');
-    }
-  }
-
-  send(data){
-    if(this.ws && this.ready){
-      try{ this.ws.send(data); }catch(_){}
-    }
-  }
-  close(){
-    try{ this.ws?.close(); }catch(_){}
-  }
+  addForklift(...a){ return window.AssetsAdd?.addForklift?.(...a); }
+  addLifter(...a){ return window.AssetsAdd?.addLifter?.(...a); }
+  addExtinguisher(...a){ return window.AssetsAdd?.addExtinguisher?.(...a); }
+  setScale(...a){ return window.AssetsAdd?.setScale?.(...a); }
+  getState(){ return window.AssetsAdd?.getState?.(); }
 }
+
+export default RTLSClient;
