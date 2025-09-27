@@ -233,3 +233,57 @@ const rtls=new RTLSClient(state); rtls.start();
 setToggle(document.getElementById('btnPlay'), true);
 setToggle(document.getElementById('btnPause'), false);
 setToggle(document.getElementById('btnHeatmap'), state.heatmap.enabled);
+
+
+// --- Add Assets (manual) ---
+function addAsset(type, x=null, y=null){
+  const idPrefix = type==='extinguisher' ? 'EXT' : (type==='lifter' ? 'LIF' : 'FORK');
+  const idx = state.assets.filter(a=>a.type===type).length + 1;
+  const id = `${idPrefix}-${String(idx).padStart(3,'0')}`;
+
+  // Default position: center-ish or given
+  const rect = document.getElementById('floor').getBoundingClientRect();
+  const px = x ?? Math.floor(rect.width*0.5 + (Math.random()*100-50));
+  const py = y ?? Math.floor(rect.height*0.5 + (Math.random()*100-50));
+  const pos_m = [ Math.round(px * state.m_per_px), Math.round(py * state.m_per_px) ];
+
+  const asset = {
+    id, type,
+    pos: pos_m,
+    vel: [0,0],
+    bubble_m: 4,
+    last_check: new Date(Date.now()-86400000*30).toISOString().slice(0,10),
+    next_check: new Date(Date.now()+86400000*90).toISOString().slice(0,10),
+    status: 'green', statusBase: 'green',
+    hours: Math.floor(Math.random()*1500),
+    wo: []
+  };
+  state.assets.push(asset);
+  state.refreshKPIs?.();
+  ui.renderDrawer(asset);
+  state.emitEvent?.('ASSET_ADDED', { id: asset.id, type: asset.type });
+  // Optional: also show overlay chip via AssetsAdd
+  if (window.AssetsAdd){
+    const px2 = Math.round(px); const py2 = Math.round(py);
+    if (type==='forklift') window.AssetsAdd.addForklift(px2, py2);
+    else if (type==='lifter') window.AssetsAdd.addLifter(px2, py2);
+    else window.AssetsAdd.addExtinguisher(px2, py2);
+  }
+}
+
+// Toolbar bindings
+document.getElementById('btnAddForklift').onclick=()=>addAsset('forklift');
+document.getElementById('btnAddLifter').onclick=()=>addAsset('lifter');
+document.getElementById('btnAddExt').onclick=()=>addAsset('extinguisher');
+
+// Alt+Click on floor to add at cursor
+document.getElementById('floor').addEventListener('click',(e)=>{
+  if(!e.altKey) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  // Simple radial menu via prompt
+  const type = prompt('Tip asset: forklift / lifter / extinguisher','forklift');
+  if(!type) return;
+  addAsset(type.trim().toLowerCase(), x, y);
+});
+// --- End Add Assets (manual) ---

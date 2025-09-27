@@ -1,86 +1,88 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="ro">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RTLS + CMMS Demo</title>
-  <link rel="icon" href="favicon.ico">
-  <link rel="stylesheet" href="css/style.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>RTLS + CMMS Demo</title>
+<link href="favicon.ico" rel="icon"/>
+<link href="css/style.css" rel="stylesheet"/>
 </head>
 <body>
-  <header>
-    <h1>RTLS + CMMS Demo</h1>
-    <div class="kpis">
-      <div class="kpi"><span id="kpiAssets">0</span><label>Asset-uri active</label></div>
-      <div class="kpi"><span id="kpiAlerts24h">0</span><label>Alerte (24h)</label></div>
-      <div class="kpi"><span id="kpiWO">0</span><label>WO deschise</label></div>
-      <div class="kpi"><span id="kpiLateInspections">0</span><label>Inspecții întârziate</label></div>
-    </div>
-  </header>
+<header>
+<h1>RTLS + CMMS Demo</h1>
+<div class="kpis">
+<div class="kpi"><span id="kpiAssets">0</span><label>Asset-uri active</label></div>
+<div class="kpi"><span id="kpiAlerts24h">0</span><label>Alerte (24h)</label></div>
+<div class="kpi"><span id="kpiWO">0</span><label>WO deschise</label></div>
+<div class="kpi"><span id="kpiLateInspections">0</span><label>Inspecții întârziate</label></div>
+</div>
+</header>
+<section class="toolbar">
+<label>Plan: <input accept="image/*" id="fileFloor" type="file"/></label>
+<button aria-pressed="true" id="btnPlay">Redare</button>
+<button aria-pressed="false" id="btnPause">Pauză</button>
+<button id="btnReset">Reset poziții</button>
+<button aria-pressed="false" id="btnDrawZone">Zone interzise: Desenează</button>
+<button aria-pressed="false" id="btnEditZones">Editează zone</button>
+<button id="btnClearZones">Șterge zone</button>
+<button aria-pressed="false" id="btnHeatmap">Căldură mișcare</button>
+<button aria-pressed="false" id="btnWOBoard">Panou WO</button>
+<button id="btnExport">Export Config</button>
+<input accept="application/json" id="fileImport" style="display:none;" type="file"/>
+<button id="btnImport">Import Config</button>
 
-  <section class="toolbar">
-    <label>Plan: <input type="file" id="fileFloor" accept="image/*"></label>
-    <button id="btnPlay" aria-pressed="true">Redare</button>
-    <button id="btnPause" aria-pressed="false">Pauză</button>
-    <button id="btnReset">Reset poziții</button>
-    <button id="btnDrawZone" aria-pressed="false">Zone interzise: Desenează</button>
-    <button id="btnEditZones" aria-pressed="false">Editează zone</button>
-    <button id="btnClearZones">Șterge zone</button>
-    <button id="btnHeatmap" aria-pressed="false">Căldură mișcare</button>
-    <button id="btnWOBoard" aria-pressed="false">Panou WO</button>
-    <button id="btnExport">Export Config</button>
-    <input type="file" id="fileImport" accept="application/json" style="display:none;">
-    <button id="btnImport">Import Config</button>
-  </section>
-
-  <section class="main">
-    <div class="left">
-      <div class="canvas-wrap">
-        <div class="minimap"><canvas id="minimap" width="220" height="132"></canvas></div>
-        <canvas id="floor" width="1200" height="720"></canvas>
-        <canvas id="overlay" width="1200" height="720"></canvas>
-      </div>
-      <div class="controls">
-        <div class="scenarios">
-          <button id="scnNoGo">Scenariu: Interdicție încălcată</button>
-          <button id="scnMeet">Scenariu: Apropiere periculoasă</button>
-          <button id="scnExpired">Scenariu: Inspecție expirată</button>
-        </div>
-        <label>Lățime (m): <input type="number" id="siteW" value="250" min="10"></label>
-        <label>Înălțime (m): <input type="number" id="siteH" value="150" min="10"></label>
-        <button id="btnCalibrate">Calibrează</button>
-        <label>Playback (min): <input type="range" id="playback" min="0" max="30" value="0"></label>
-      </div>
-      <div id="eventsPane"></div>
-      <div class="analytics" id="analytics">
-        <div class="events-head">
-          <strong>Analitice (ultimele 30 min)</strong>
-          <div>
-            <button id="btnRecalc" class="badge">Recalculează</button>
-            <button id="btnCSV" class="badge">Export CSV</button>
-          </div>
-        </div>
-        <div id="chartUtil" class="chart"></div>
-        <div class="legend"><span><span class="swatch"></span> % timp în mișcare</span></div>
-        <div id="chartEvents" class="chart"></div>
-        <div class="legend"><span><span class="swatch"></span> Nr. evenimente / asset</span></div>
-        <div class="kanban" id="kanban" style="display:none;">
-          <div class="col" id="colNoua"><h4>Nouă</h4><div class="cards" id="cardsNoua"></div></div>
-          <div class="col" id="colInLucru"><h4>În lucru</h4><div class="cards" id="cardsInLucru"></div></div>
-          <div class="col" id="colFinalizata"><h4>Finalizată</h4><div class="cards" id="cardsFinalizata"></div></div>
-        </div>
-        <div class="inv" id="inventory"></div>
-      </div>
-    </div>
-    <aside class="drawer" id="assetDrawer"></aside>
-  </section>
-
-  <footer>
-    <small>Viteză limită: 5 km/h • Zgomot de date simulat • Rulare locală sau WS dacă există</small>
-  </footer>
-
-  <!-- Minimal QR (IIFE global) -->
-  <script>
+<span class="sep"></span>
+<button id="btnAddForklift">Adaugă stivuitor</button>
+<button id="btnAddLifter">Adaugă lifter</button>
+<button id="btnAddExt">Adaugă extinctor</button>
+</section>
+<section class="main">
+<div class="left">
+<div class="canvas-wrap">
+<div class="minimap"><canvas height="132" id="minimap" width="220"></canvas></div>
+<canvas height="720" id="floor" width="1200"></canvas>
+<canvas height="720" id="overlay" width="1200"></canvas>
+</div>
+<div class="controls">
+<div class="scenarios">
+<button id="scnNoGo">Scenariu: Interdicție încălcată</button>
+<button id="scnMeet">Scenariu: Apropiere periculoasă</button>
+<button id="scnExpired">Scenariu: Inspecție expirată</button>
+</div>
+<label>Lățime (m): <input id="siteW" min="10" type="number" value="250"/></label>
+<label>Înălțime (m): <input id="siteH" min="10" type="number" value="150"/></label>
+<button id="btnCalibrate">Calibrează</button>
+<label>Playback (min): <input id="playback" max="30" min="0" type="range" value="0"/></label>
+</div>
+<div id="eventsPane"></div>
+<div class="analytics" id="analytics">
+<div class="events-head">
+<strong>Analitice (ultimele 30 min)</strong>
+<div>
+<button class="badge" id="btnRecalc">Recalculează</button>
+<button class="badge" id="btnCSV">Export CSV</button>
+</div>
+</div>
+<div class="chart" id="chartUtil"></div>
+<div class="legend"><span><span class="swatch"></span> % timp în mișcare</span></div>
+<div class="chart" id="chartEvents"></div>
+<div class="legend"><span><span class="swatch"></span> Nr. evenimente / asset</span></div>
+<div class="kanban" id="kanban" style="display:none;">
+<div class="col" id="colNoua"><h4>Nouă</h4><div class="cards" id="cardsNoua"></div></div>
+<div class="col" id="colInLucru"><h4>În lucru</h4><div class="cards" id="cardsInLucru"></div></div>
+<div class="col" id="colFinalizata"><h4>Finalizată</h4><div class="cards" id="cardsFinalizata"></div></div>
+</div>
+<div class="inv" id="inventory"></div>
+</div>
+</div>
+<aside class="drawer" id="assetDrawer"></aside>
+</section>
+<footer>
+<small>Viteză limită: 5 km/h • Zgomot de date simulat • Rulare locală sau WS dacă există</small>
+</footer>
+<!-- Minimal QR (IIFE global) -->
+<script>
   (function(){function p(a){this.mode=q.MODE_8BIT_BYTE;this.data=a}
   var q={PAD0:236,PAD1:17,MODE_8BIT_BYTE:4,ErrorCorrectLevel:{L:1,M:0,Q:3,H:2}};
   function r(a,b){this.typeNumber=a;this.errorCorrectLevel=b;this.modules=null;this.moduleCount=0;this.dataList=[]}
@@ -92,11 +94,10 @@
   window.SimpleQR=r;
   })();
   </script>
-
-  <!-- Only app.js is a module -->
-<link rel="stylesheet" href="css/add-assets.css">
-<script type="module" src="js/add-assets.js"></script>
+<!-- Only app.js is a module -->
+<link href="css/add-assets.css" rel="stylesheet"/>
+<script src="js/add-assets.js" type="module"></script>
 <script src="js/rtls-universal-shim.js"></script>
-<script type="module" src="js/app.js"></script>
+<script src="js/app.js" type="module"></script>
 </body>
 </html>
