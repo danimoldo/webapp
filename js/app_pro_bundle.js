@@ -1,16 +1,17 @@
-// app_pro_bundle.js — HOTFIX (no DOM rewrites, single +Adăugare, safe layer, fixed placement & drag)
+// app_pro_bundle.js — HOTFIX v2
 (function(){
-  // ---------- helpers ----------
   const $ = (s, c=document) => c.querySelector(s);
   const $$ = (s, c=document) => Array.from(c.querySelectorAll(s));
   const norm = t => (t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 
-  // Find the best "map/plan" root to host markers (largest visible candidate)
+  function cleanupRogues(){
+    $$(".asset-layer").slice(1).forEach(el=>el.remove());
+    $$(".toolbar-pro").slice(1).forEach(el=>el.remove());
+  }
+
   function findMapRoot(){
-    const candidates = [
-      "#plan", "#harta", "#map", ".plan", ".map", ".leaflet-container",
-      ".mapboxgl-canvas", ".canvas", "canvas", "#canvas"
-    ].map(sel => $$(sel)).flat();
+    const selectors = ["#plan","#harta","#map",".plan",".map",".leaflet-container",".mapboxgl-canvas",".canvas","canvas","#canvas"];
+    const candidates = selectors.flatMap(sel => $$(sel));
     const visible = candidates.filter(el=>{
       if (!el || !el.getBoundingClientRect) return false;
       const r = el.getBoundingClientRect();
@@ -24,14 +25,15 @@
     return visible[0];
   }
 
-  // Ensure a single toolbar; attach next to "Redare" if found
   function ensureToolbar(){
     if ($(".toolbar-pro")) return;
+    const existingAdd = $$("button").find(b => norm(b.textContent).includes("+ adăugare") || norm(b.textContent).includes("+ adaugare"));
     const redareBtn = $$("button").find(b => norm(b.textContent).trim() === "redare");
+
     const block = document.createElement("div");
     block.className = "toolbar-pro";
     block.innerHTML = `
-      <button id="btn-add" class="btn">+ Adăugare</button>
+      ${existingAdd ? "" : `<button id="btn-add" class="btn">+ Adăugare</button>`}
       <div class="divider"></div>
       <label class="f-label">Filtru tip</label>
       <select id="filterType" class="sel">
@@ -57,9 +59,11 @@
     `;
     if (redareBtn?.parentElement) redareBtn.insertAdjacentElement("afterend", block);
     else document.body.insertAdjacentElement("afterbegin", block);
+
+    const addButtons = $$("button").filter(b => norm(b.textContent).includes("+ adăugare") || norm(b.textContent).includes("+ adaugare"));
+    if (addButtons.length > 1){ addButtons.slice(1).forEach(b => b.style.display="none"); }
   }
 
-  // Ensure modals (add/edit + help)
   function ensureModals(){
     if (!$("#asset-modal")){
       const m = document.createElement("div");
@@ -106,10 +110,10 @@
           <div class="modal__body">
             <ol>
               <li><strong>+ Adăugare</strong> — alege tipul și datele, apoi <em>Salvează</em>.</li>
-              <li>Dă <strong>click pe hartă</strong> (plan) pentru a plasa activul; apoi <strong>drag &amp; drop</strong>.</li>
-              <li><strong>Click pe marker</strong> pentru editare/ștergere.</li>
+              <li>Dă <strong>click pe hartă</strong> pentru a plasa activul; apoi <strong>drag &amp; drop</strong>.</li>
+              <li><strong>Click pe marker</strong> pentru editare sau ștergere.</li>
               <li><strong>Filtre &amp; căutare</strong> — după Tip/Stare + ID.</li>
-              <li><strong>Export/Import</strong> — JSON/CSV; persistă automat în localStorage.</li>
+              <li><strong>Export/Import</strong> — JSON/CSV; persistă automat.</li>
             </ol>
           </div>
           <div class="modal__footer"><button class="btn" data-close>Închis</button></div>
@@ -118,12 +122,11 @@
     }
   }
 
-  // Create the layer INSIDE the map root
   function ensureAssetLayer(){
+    const old = $("#asset-layer"); if (old) old.remove();
     let layer = $(".asset-layer");
     if (layer) return layer;
     const host = findMapRoot() || document.body;
-    // Make host positioned for absolute overlay
     const cs = getComputedStyle(host);
     if (cs.position === "static") host.style.position = "relative";
     layer = document.createElement("div");
@@ -132,7 +135,6 @@
     return layer;
   }
 
-  // ---------- Core app ----------
   const App = (function(){
     let layer = ensureAssetLayer();
     const state = {
@@ -143,7 +145,6 @@
       host: layer.parentElement
     };
 
-    // If layout changes (e.g., map mounts later), reattach layer
     const mo = new MutationObserver(()=> {
       const newHost = findMapRoot();
       if (newHost && newHost !== state.host){
@@ -200,10 +201,10 @@
         });
         el.addEventListener("mousedown", (e)=>{
           const r = layer.getBoundingClientRect();
+          const mx = e.clientX - r.left, my = e.clientY - r.top;
           state.drag.id=a.id;
-          state.drag.dx = e.clientX - (a.x|| (r.left + 80));
-          state.drag.dy = e.clientY - (a.y|| (r.top  + 120));
-          showHint("Glisează pentru a muta…");
+          state.drag.dx = mx - ((a.x??(r.left+80)) - r.left);
+          state.drag.dy = my - ((a.y??(r.top+120)) - r.top);
         });
       }
       return el;
@@ -241,20 +242,21 @@
       try{ if (window.app?.render) window.app.render(); }catch(_){}
     }
 
-    // Dragging relative to layer
     document.addEventListener("mousemove", (e)=>{
       if(!state.drag.id) return;
       const a=state.assets.find(x=>x.id===state.drag.id); if(!a) return;
       const r = layer.getBoundingClientRect();
-      a.x = Math.max(r.left, Math.min(e.clientX - state.drag.dx, r.right));
-      a.y = Math.max(r.top , Math.min(e.clientY - state.drag.dy, r.bottom));
+      let nx = e.clientX - state.drag.dx;
+      let ny = e.clientY - state.drag.dy;
+      nx = Math.max(r.left, Math.min(nx, r.right));
+      ny = Math.max(r.top , Math.min(ny, r.bottom));
+      a.x = nx; a.y = ny;
       render();
     });
     document.addEventListener("mouseup", ()=>{
       if(state.drag.id){ state.drag.id=null; window.dispatchEvent(new CustomEvent("assets:changed",{detail:{reason:"drag"}})); }
     });
 
-    // Place on map only when clicking inside layer host
     document.addEventListener("click", (e)=>{
       if(!state.placementForId) return;
       const r = layer.getBoundingClientRect();
@@ -299,15 +301,15 @@
     return window.App;
   })();
 
-  // ---------- Modal behavior ----------
   (function(){
-    function $(s,c=document){ return c.querySelector(s); }
     const modal = $("#asset-modal");
+    const help  = $("#help-modal");
+
     const idInput = $("#assetId"), typeInput=$("#assetType"), entryInput=$("#entryDate"), verifyInput=$("#verifyExpiry"), iscirInput=$("#iscirExpiry");
     const toDateInput = v => { const d=v?new Date(v):new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), da=String(d.getDate()).padStart(2,"0"); return `${y}-${m}-${da}`; };
     const addMonths = (d,n)=>{ d=new Date(d||Date.now()); d.setMonth(d.getMonth()+n); return d; };
 
-    function open(asset){
+    function openAsset(asset){
       if (asset){ idInput.value=asset.id||""; typeInput.value=(asset.type||"").toLowerCase();
         entryInput.value=asset.entryDate||toDateInput();
         verifyInput.value=asset.verifyExpiry||toDateInput(addMonths(null,12));
@@ -321,37 +323,40 @@
       }
       modal.setAttribute("aria-hidden","false");
     }
-    function close(){ modal.setAttribute("aria-hidden","true"); }
-    window.openAssetEditor = open;
+    function closeAsset(){ modal.setAttribute("aria-hidden","true"); }
 
-    // Reuse an existing "+ Adăugare" if present; otherwise our injected one.
-    const userAdd = $$("button").find(b => norm(b.textContent).includes("+ adaugare")) || $("#btn-add");
-    userAdd?.addEventListener("click", ()=>open());
+    function openHelp(){ help?.setAttribute("aria-hidden","false"); }
+    function closeHelp(){ help?.setAttribute("aria-hidden","true"); }
 
-    modal.addEventListener("click", (e)=>{ if (e.target.matches("[data-close]")||e.target.classList.contains("modal__backdrop")) close(); });
-    document.addEventListener("keydown", (e)=>{ if (e.key==="Escape") close(); });
+    window.openAssetEditor = openAsset;
 
-    const gather = ()=>({ id: idInput.value.trim(), type:typeInput.value, entryDate:entryInput.value, verifyExpiry:verifyInput.value, iscirExpiry:iscirInput.value });
+    const addBtn = $$("button").find(b => norm(b.textContent).includes("+ adăugare") || norm(b.textContent).includes("+ adaugare")) || $("#btn-add");
+    addBtn?.addEventListener("click", ()=>openAsset());
 
     document.addEventListener("click", (e)=>{
-      if (e.target?.id==="btn-save"){ e.preventDefault(); const p=gather(); if(!p.id) p.id=(p.type==="stivuitor"?"S":p.type==="lifter"?"L":"E")+"-"+String(Math.floor(1+Math.random()*999)).padStart(3,"0"); window.App?.addAsset?.(p); close(); }
-      if (e.target?.id==="btn-edit"){ e.preventDefault(); const p=gather(); if(!p.id) return; window.App?.updateAsset?.(p); close(); }
-      if (e.target?.id==="btn-delete"){ e.preventDefault(); const id=idInput.value.trim(); if(!id) return; window.App?.removeAsset?.(id); close(); }
-      if (e.target?.id==="btn-help"){ const hm=$("#help-modal"); hm?.setAttribute("aria-hidden","false"); }
+      if (e.target?.matches?.("#asset-modal [data-close], #asset-modal .modal__backdrop")) closeAsset();
+      if (e.target?.matches?.("#help-modal [data-close], #help-modal .modal__backdrop")) closeHelp();
+      if (e.target?.id==="btn-help") openHelp();
+
+      if (e.target?.id==="btn-save"){ e.preventDefault(); const p={ id: idInput.value.trim(), type:typeInput.value, entryDate:entryInput.value, verifyExpiry:verifyInput.value, iscirExpiry:iscirInput.value }; if(!p.id) p.id=(p.type==="stivuitor"?"S":p.type==="lifter"?"L":"E")+"-"+String(Math.floor(1+Math.random()*999)).padStart(3,"0"); window.App?.addAsset?.(p); closeAsset(); }
+      if (e.target?.id==="btn-edit"){ e.preventDefault(); const p={ id: idInput.value.trim(), type:typeInput.value, entryDate:entryInput.value, verifyExpiry:verifyInput.value, iscirInput:iscirInput.value, iscirExpiry:iscirInput.value }; if(!p.id) return; window.App?.updateAsset?.(p); closeAsset(); }
+      if (e.target?.id==="btn-delete"){ e.preventDefault(); const id=idInput.value.trim(); if(!id) return; window.App?.removeAsset?.(id); closeAsset(); }
     });
+    document.addEventListener("keydown", (e)=>{ if (e.key==="Escape"){ closeAsset(); closeHelp(); }});
   })();
 
-  // ---------- Filters & search ----------
   (function(){
-    const tSel = () => $("#filterType");
-    const sSel = () => $("#filterStatus");
-    const qInp = () => $("#searchId");
-    function apply(){ window.App?.setFilters?.({ type: tSel()?.value||"toate", status: sSel()?.value||"toate", search: qInp()?.value?.trim()||"" }); }
-    document.addEventListener("change", (e)=>{ if (e.target===tSel() || e.target===sSel()) apply(); });
-    document.addEventListener("input",  (e)=>{ if (e.target===qInp()) apply(); });
+    function apply(){
+      const t = $("#filterType")?.value || "toate";
+      const s = $("#filterStatus")?.value || "toate";
+      const q = ($("#searchId")?.value || "").trim();
+      window.App?.setFilters?.({ type:t, status:s, search:q });
+    }
+    document.addEventListener("change", (e)=>{ const id=e.target?.id; if (id==="filterType" || id==="filterStatus") apply(); });
+    document.addEventListener("input",  (e)=>{ if (e.target?.id==="searchId") apply(); });
+    setTimeout(apply, 0);
   })();
 
-  // ---------- Persistence & export/import ----------
   (function(){
     const KEY="rtls_assets_v1";
     function save(){ try{ const items=(window.App?.assets)||[]; localStorage.setItem(KEY, JSON.stringify(items)); }catch(e){} }
@@ -368,8 +373,7 @@
     window.addEventListener("assets:changed", save); window.addEventListener("beforeunload", save);
   })();
 
-  // ---------- Boot ----------
-  function boot(){ ensureToolbar(); ensureModals(); ensureAssetLayer(); }
+  function boot(){ cleanupRogues(); ensureToolbar(); ensureModals(); ensureAssetLayer(); }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 })();
