@@ -1,5 +1,5 @@
-/* PRO UI */
-.toolbar-pro{ display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; padding:.5rem 1rem; }
+/* HOTFIX CSS */
+.toolbar-pro{ display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; padding:.5rem 1rem; z-index:1000; position:relative; }
 .toolbar-pro .btn{ padding:.4rem .75rem; border:1px solid #c9c9c9; border-radius:.6rem; background:#f6f6f6; cursor:pointer; }
 .toolbar-pro .btn:hover{ background:#f0f0f0; }
 .toolbar-pro .btn-file{ position:relative; overflow:hidden; }
@@ -8,7 +8,8 @@
 .toolbar-pro .f-label{ font-size:.9rem; color:#333; margin-left:.25rem; }
 .toolbar-pro .divider{ width:1px; height:24px; background:#e1e1e1; margin:0 .25rem; }
 
-#asset-layer{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index: 9991; }
+/* Asset layer lives inside the map/plan container */
+.asset-layer{ position:absolute; inset:0; pointer-events:none; z-index:2; }
 .asset-marker{ position:absolute; transform: translate(-50%, -100%); pointer-events: auto; user-select:none; }
 .asset-marker .bubble{ background:#fff; border:1px solid #e4e4e4; border-radius:12px; padding:.25rem .5rem; box-shadow:0 8px 20px rgba(0,0,0,.12); display:flex; align-items:center; gap:.4rem; }
 .asset-marker .id{ font-weight:600; }
@@ -18,10 +19,11 @@
 .status.warning{ background:#f59e0b; }
 .status.expired{ background:#ef4444; }
 
-.drag-hint{ position:fixed; left:50%; transform:translateX(-50%); bottom:20px; background:rgba(0,0,0,.75); color:#fff; padding:.5rem .75rem; border-radius:.5rem; z-index:9999; font-size:.9rem; }
+/* Drag hint bubble */
+.drag-hint{ position:fixed; left:50%; transform:translateX(-50%); bottom:20px; background:rgba(0,0,0,.75); color:#fff; padding:.5rem .75rem; border-radius:.5rem; z-index:1100; font-size:.9rem; }
 
 /* Modal */
-.modal{position:fixed; inset:0; display:none; z-index: 9998;}
+.modal{position:fixed; inset:0; display:none; z-index: 1050;}
 .modal[aria-hidden="false"]{ display:block; }
 .modal__backdrop{position:absolute; inset:0; background:rgba(0,0,0,.35);}
 .modal__dialog{position:relative; width:min(560px, calc(100% - 2rem)); margin:10vh auto; background:#fff; color:#111; border:1px solid #e5e5e5; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.15); overflow:hidden;}
