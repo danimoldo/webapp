@@ -14,7 +14,7 @@
     if (document.getElementById("asset-modal")) return;
     const wrap = document.createElement("div");
     wrap.innerHTML = `
-    <link rel="stylesheet" href="css/modal.css">
+    <link rel="stylesheet" href="css/modal.css?v=3">
     <div class="modal" id="asset-modal" aria-hidden="true">
       <div class="modal__backdrop" data-close></div>
       <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="asset-modal-title">

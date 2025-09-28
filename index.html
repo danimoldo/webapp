@@ -6,9 +6,8 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>RTLS + CMMS Demo</title>
 <link href="favicon.ico" rel="icon"/>
-<link href="css/style.css" rel="stylesheet"/>
-<link rel="stylesheet" href="css/modal.css">
-<link rel="stylesheet" href="css/app.css" />  
+<link href="css/style.css?v=3" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/modal.css?v=3">
 </head>
 <body>
 <header>
@@ -42,9 +41,9 @@
 <section class="main">
 <div class="left">
 <div class="canvas-wrap">
-<div class="minimap"><canvas height="132" id="minimap" width="220"></canvas></div>
-<canvas height="720" id="floor" width="1200"></canvas>
-<canvas height="720" id="overlay" width="1200"></canvas>
+<div class="minimap"></div>
+
+
 </div>
 <div class="controls">
 <div class="scenarios">
@@ -63,7 +62,7 @@
 <strong>Analitice (ultimele 30 min)</strong>
 <div>
 <button class="badge" id="btnRecalc">Recalculează</button>
-<button class="badge" id="btnCSV">Export CSV</button>
+
 </div>
 </div>
 <div class="chart" id="chartUtil"></div>
@@ -96,12 +95,21 @@
   window.SimpleQR=r;
   })();
   </script>
-<!-- Only app.js is a module --><script src="js/app.js" type="module"></script>
-  <script src="js/add_modal.js"></script>
-  <script src="js/add_modal_adapter_strong.js"></script>
-  <script src="js/add_modal_host_bridge.js"></script>
-  <script src="js/position_add_button.js"></script>
-  <script src="js/fix_modal_visibility.js"></script>
-  <script src="js/app_pro_bundle.js"></script>
+<!-- Only app.js is a module --><script src="js/app.js?v=3" type="module"></script>
+  <script src="js/add_modal.js?v=3"></script>
+  <script src="js/add_modal_adapter_strong.js?v=3"></script>
+  <script src="js/add_modal_host_bridge.js?v=3"></script>
+  <script src="js/position_add_button.js?v=3"></script>
+  <script src="js/fix_modal_visibility.js?v=3"></script>
+
+<!-- Help Modal v3 -->
+<div id="helpModal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; padding:20px; max-width:720px; width:90%; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.2)">
+    <h2 style="margin-top:0">Ajutor</h2>
+    <p>Acesta este panoul de ajutor. Folosește căutarea pentru a filtra în timp real elementele. Butoanele Redare/Pauză controlează simularea. Închide acest dialog cu butonul de mai jos.</p>
+    <button id="helpCloseBtn" class="btn btn-primary">Închide</button>
+  </div>
+</div>
+
 </body>
 </html>

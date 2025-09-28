@@ -168,3 +168,49 @@
   // Kick one render in case there is pre-seeded data
   setTimeout(render, 50);
 })();
+
+
+// HOTFIX v3: Ajutor modal wiring
+(function(){
+  function qs(sel){return document.querySelector(sel);}
+  var btn = qs('#helpBtn');
+  var modal = qs('#helpModal');
+  var closeBtn = qs('#helpCloseBtn');
+  if(btn && modal){
+    btn.addEventListener('click', function(){
+      modal.style.display = 'flex';
+    });
+  }
+  if(modal && closeBtn){
+    closeBtn.addEventListener('click', function(){
+      modal.style.display = 'none';
+    });
+    modal.addEventListener('click', function(e){
+      if(e.target === modal){ modal.style.display='none'; }
+    });
+  }
+})();
+
+
+// HOTFIX v3: Live search/filter
+(function(){
+  var input = document.querySelector('#search, #filter, input[data-role="search"], input[name="search"]');
+  if(!input) return;
+  function normalize(s){ return (s||'').toString().toLowerCase().trim(); }
+  function filter(){
+    var q = normalize(input.value);
+    var rows = Array.from(document.querySelectorAll('table tbody tr'));
+    var items = Array.from(document.querySelectorAll('[data-search-item], .search-item'));
+    var targets = rows.length ? rows : items;
+    if(!targets.length){
+      // fallback: any direct children of #list or .list
+      targets = Array.from(document.querySelectorAll('#list > * , .list > *'));
+    }
+    targets.forEach(function(el){
+      var text = normalize(el.innerText || el.textContent);
+      el.style.display = text.indexOf(q) !== -1 ? '' : 'none';
+    });
+  }
+  input.addEventListener('input', filter);
+  input.addEventListener('keyup', filter);
+})();
