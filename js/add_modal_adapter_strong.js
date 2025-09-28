@@ -170,47 +170,36 @@
 })();
 
 
-// HOTFIX v3: Ajutor modal wiring
+// HOTFIX v3b: Ajutor modal
 (function(){
-  function qs(sel){return document.querySelector(sel);}
+  function qs(s){return document.querySelector(s);}
   var btn = qs('#helpBtn');
   var modal = qs('#helpModal');
-  var closeBtn = qs('#helpCloseBtn');
   if(btn && modal){
-    btn.addEventListener('click', function(){
-      modal.style.display = 'flex';
-    });
-  }
-  if(modal && closeBtn){
-    closeBtn.addEventListener('click', function(){
-      modal.style.display = 'none';
-    });
-    modal.addEventListener('click', function(e){
-      if(e.target === modal){ modal.style.display='none'; }
-    });
+    btn.addEventListener('click', function(){ modal.style.display='flex'; });
+    modal.addEventListener('click', function(e){ if(e.target===modal){ modal.style.display='none'; } });
+    var closeBtn = qs('#helpCloseBtn');
+    if(closeBtn){ closeBtn.addEventListener('click', function(){ modal.style.display='none'; });}
   }
 })();
 
 
-// HOTFIX v3: Live search/filter
+// HOTFIX v3b: Live search/filter
 (function(){
   var input = document.querySelector('#search, #filter, input[data-role="search"], input[name="search"]');
   if(!input) return;
-  function normalize(s){ return (s||'').toString().toLowerCase().trim(); }
-  function filter(){
-    var q = normalize(input.value);
+  function norm(s){ return (s||'').toString().toLowerCase(); }
+  function run(){
+    var q = norm(input.value.trim());
     var rows = Array.from(document.querySelectorAll('table tbody tr'));
     var items = Array.from(document.querySelectorAll('[data-search-item], .search-item'));
     var targets = rows.length ? rows : items;
-    if(!targets.length){
-      // fallback: any direct children of #list or .list
-      targets = Array.from(document.querySelectorAll('#list > * , .list > *'));
-    }
+    if(!targets.length) targets = Array.from(document.querySelectorAll('#list > * , .list > *'));
     targets.forEach(function(el){
-      var text = normalize(el.innerText || el.textContent);
+      var text = norm(el.innerText || el.textContent);
       el.style.display = text.indexOf(q) !== -1 ? '' : 'none';
     });
   }
-  input.addEventListener('input', filter);
-  input.addEventListener('keyup', filter);
+  input.addEventListener('input', run);
+  input.addEventListener('keyup', run);
 })();
