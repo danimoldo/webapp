@@ -6,6 +6,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>RTLS + CMMS Demo</title>
 <link href="favicon.ico" rel="icon"/>
+<base href="/webapp/">
 <link href="css/style.css?v=3" rel="stylesheet"/>
   <link rel="stylesheet" href="css/modal.css?v=3">
 </head>
@@ -41,9 +42,9 @@
 <section class="main">
 <div class="left">
 <div class="canvas-wrap">
-<div class="minimap"></div>
-
-
+<div class="minimap"><canvas height="132" id="minimap" width="220"></canvas></div>
+<canvas height="720" id="floor" width="1200"></canvas>
+<canvas height="720" id="overlay" width="1200"></canvas>
 </div>
 <div class="controls">
 <div class="scenarios">
@@ -102,14 +103,13 @@
   <script src="js/position_add_button.js?v=3"></script>
   <script src="js/fix_modal_visibility.js?v=3"></script>
 
-<!-- Help Modal v3b -->
+<!-- Help Modal v3c -->
 <div id="helpModal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; align-items:center; justify-content:center;">
   <div style="background:#fff; padding:20px; max-width:720px; width:90%; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.2)">
     <h2 style="margin-top:0">Ajutor</h2>
-    <p>Folosește căutarea pentru a filtra în timp real. Butoanele Redare/Pauză controlează simularea.</p>
+    <p>Folosește căutarea pentru a filtra în timp real. Redare/Pauză controlează simularea.</p>
     <button id="helpCloseBtn" class="btn btn-primary">Închide</button>
   </div>
 </div>
-
 </body>
 </html>

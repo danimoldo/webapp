@@ -170,21 +170,19 @@
 })();
 
 
-// HOTFIX v3b: Ajutor modal
+// HOTFIX v3c: Ajutor modal
 (function(){
-  function qs(s){return document.querySelector(s);}
-  var btn = qs('#helpBtn');
-  var modal = qs('#helpModal');
+  var btn = document.querySelector('#helpBtn');
+  var modal = document.querySelector('#helpModal');
   if(btn && modal){
     btn.addEventListener('click', function(){ modal.style.display='flex'; });
+    var closeBtn = document.querySelector('#helpCloseBtn');
+    if(closeBtn){ closeBtn.addEventListener('click', function(){ modal.style.display='none'; }); }
     modal.addEventListener('click', function(e){ if(e.target===modal){ modal.style.display='none'; } });
-    var closeBtn = qs('#helpCloseBtn');
-    if(closeBtn){ closeBtn.addEventListener('click', function(){ modal.style.display='none'; });}
   }
 })();
 
-
-// HOTFIX v3b: Live search/filter
+// HOTFIX v3c: Live search/filter
 (function(){
   var input = document.querySelector('#search, #filter, input[data-role="search"], input[name="search"]');
   if(!input) return;
